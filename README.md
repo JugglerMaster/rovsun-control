@@ -1,0 +1,145 @@
+# rovsun-control
+
+Reverse-engineering and local control of a Rovsun mini-split that uses a
+Realtek **RTL8720CF** Wi-Fi module. The app is not necessarily the Tuya app;
+the device metadata mentions air-conditioning, voice control, and TCL Home BT
+EZ. Those branding details do not determine the UART protocol. The working
+hypothesis is that the Wi-Fi module talks to the main control board using the
+Tuya MCU serial protocol, but this must be confirmed before modifying hardware.
+
+The mini-split also has an IR remote. IR control is not integrated cleanly with
+the app: commands from the app and remote can override one another, and their
+state may not stay synchronized.
+
+The exposed module header is labeled `5V TX RX GND`. With the unit powered,
+both `TX` and `RX` measured approximately 5 V at idle. Treat these as 5 V TTL
+signals until proven otherwise; do not connect them directly to XIAO GPIOs.
+
+## Hardware you have
+
+- Several Seeed XIAO ESP32-C3 (native USB-C, Wi-Fi, 3.3 V logic)
+- USB-to-TTL serial adapter for passive UART capture
+- 3.3 V/5 V UART level shifter with divided 5 V RX and transistor TX conversion
+- Arduino boards are available, but the XIAO is the preferred replacement
+- Two mini-splits (experiment on one, keep the other stock)
+
+## Current network findings
+
+The app-provided MAC address `20:f1:b2:5c:1b:3e` maps to
+`192.168.1.130` on the LAN. Its `20:f1:b2` OUI is registered to Tuya Smart,
+which confirms that this is a Tuya-family device. It is reachable, but it did
+not respond on the usual Tuya local ports `6666`, `6667`, or `6668`, and no
+Tuya discovery broadcast was observed during passive listening. This does not
+rule out Tuya hardware; local control may be disabled, use a newer protocol,
+or require the branded app/cloud path.
+
+There is also a separate Midea Ubit on the network:
+
+- `192.168.1.45`, hostname `net_ac_3A18`
+- MAC prefix `24:59:e5`, registered to GD Midea Air-Conditioning Equipment
+- TCP port `6444` open, consistent with Midea local control
+
+Do not use the Midea Ubit as evidence about the Rovsun unit. They are separate
+hardware and protocol families.
+
+## Phase 1 — optional network investigation
+
+If the branded app can provide a Tuya local key, test the LAN path without
+modifying the mini-split:
+
+```bash
+pip install tinytuya
+tuya wizard        # only works if the device is accessible through Tuya
+# dump live datapoints to learn the DP mapping:
+python3 -c "import tinytuya; d=tinytuya.Device('DEVICE_ID','192.168.1.130','LOCAL_KEY'); print(d.status())"
+```
+
+If this fails, do not brute-force commands or inject traffic into the device.
+Proceed to passive UART capture instead. The local key is not required for the
+hardware replacement path.
+
+## Phase 2 — prove the UART protocol
+
+This is the primary validation step. Keep the stock module installed and the
+mini-split unmodified. The RTL8720CF has two UART directions:
+
+- Module TX -> main-board RX
+- Main-board TX -> module RX
+
+The USB-to-TTL adapter can capture one direction at a time:
+
+| USB-to-TTL adapter | Connection |
+|--------------------|------------|
+| RX                 | module TX  |
+| GND                | verified board signal GND |
+| TX                 | leave disconnected |
+| VCC                | leave disconnected |
+
+First capture the module TX line, then move the adapter RX lead to the module
+RX line and repeat after a power cycle. Try `9600`, `19200`, and `115200` baud,
+using `8N1`. Clean frames beginning with `55 AA` confirm the Tuya MCU protocol.
+Save raw captures or decoded bytes so the baud rate, commands, checksums, and
+datapoints can be reviewed before any replacement is attempted.
+
+Use a USB-TTL adapter whose RX input is rated for 5 V, or add a resistor divider
+before its RX input. If the UART is confirmed to be 5 V, level-shift the main
+board TX down to the XIAO RX, and preferably shift the XIAO TX up to 5 V before
+the main-board RX. A 5 V rail on the header must never be connected to the
+XIAO `3V3` pin.
+
+With the available UART level shifter, connect the XIAO to the `LV`/3.3 V side
+and the module header to the `HV`/5 V side. For the receive direction, module
+`TX` -> shifter 5 V-side RX -> shifter 3.3 V-side output -> XIAO RX. For the
+transmit direction, XIAO TX -> shifter 3.3 V-side input -> shifter 5 V-side TX
+-> module `RX`. Follow the actual labels and direction markings on the shifter;
+do not rely on the physical placement of its pins.
+
+The XIAO can also be used as a passive serial receiver, but the USB-to-TTL
+adapter is simpler for one direction and does not require flashing a sniffer.
+Two receivers are needed for simultaneous two-way capture.
+
+## Phase 3 — replace the RTL8720CF with the XIAO C3
+
+Only proceed after Phase 2 confirms `55 AA` frames and the logic voltage.
+ESPHome's `tuya:` component already speaks the Tuya MCU serial protocol. You
+only map the DPs discovered from the captures.
+
+A replacement UART controller would remove the stock app/Wi-Fi module as a
+competing control source. If the main MCU reports IR-originated changes over
+the UART, the replacement can observe and publish those changes. It cannot
+guarantee that IR and UART commands are merged or synchronized if the main
+control board itself uses last-command-wins behavior; that must be verified in
+the captures.
+
+Cut the Wi-Fi module out, then connect the XIAO to the main MCU UART:
+
+| XIAO C3 | Main MCU / module pad |
+|---------|-----------------------|
+| D7 GPIO20 (TX1) | main-MCU RX |
+| D6 GPIO21 (RX1) | main-MCU TX |
+| GND | board GND |
+| 3V3 / 5V | module-power rail, only after measuring it |
+
+Flash `esphome/rovsun-c3.yaml` over USB-C with `esphome run`.
+
+### Files
+
+- `esphome/rovsun-c3.yaml` — replacement firmware (ESPHome Tuya MCU bridge)
+- `sniff/rovsun-sniff.ino` — optional XIAO UART sniffer
+
+## Notes and safety
+
+- Do not inject serial commands while the stock module is connected. Two TX
+  sources can cause bus contention.
+- Never connect the USB-to-TTL adapter's TX or VCC during passive capture.
+- Confirm the signal voltage before connecting any XIAO or adapter input. A
+  multimeter showing 5 V is an idle-level measurement and does not confirm
+  that the header is the main MCU UART; capture activity before replacing it.
+- For the first live test, connect only the module TX receive path through the
+  level shifter. Add the XIAO TX path only after the UART protocol and voltage
+  are confirmed.
+- The mini-split contains mains voltage. Wire only to verified low-voltage
+  points, with power disconnected while wiring.
+- RTL8720CF is not an ESP32. Do not assume ESP-specific flashing tools apply;
+  the replacement strategy is to remove the module and speak to the main MCU
+  UART.
