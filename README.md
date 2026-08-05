@@ -75,11 +75,40 @@ The USB-to-TTL adapter can capture one direction at a time:
 | TX                 | leave disconnected |
 | VCC                | leave disconnected |
 
+Current capture wiring note: on the mini-split side, blue is connected to board
+signal GND and yellow is connected to the module TX signal. Connect blue to the
+adapter GND and yellow to the adapter RX. Do not connect the adapter TX or VCC.
+
 First capture the module TX line, then move the adapter RX lead to the module
 RX line and repeat after a power cycle. Try `9600`, `19200`, and `115200` baud,
 using `8N1`. Clean frames beginning with `55 AA` confirm the Tuya MCU protocol.
 Save raw captures or decoded bytes so the baud rate, commands, checksums, and
 datapoints can be reviewed before any replacement is attempted.
+
+Initial passive capture on the module TX line produced sustained, structured
+traffic at `115200 8N1`, including repeated `A5 01 01 ...` sequences (270 bytes
+during an on/off test). Captures at `9600` and `19200` appeared to be random
+bytes. This is active UART traffic, but it does not match the expected Tuya
+`55 AA` framing; preserve captures and identify this protocol before injecting
+anything.
+
+Changing the target temperature while monitoring at `115200` produced 318
+bytes and changing `A5 01 01 23 ...` packets, including successive values
+`23 00 12`, `23 00 13`, and `23 00 14`. This confirms that app state changes are
+visible on the captured line; the packet fields still need to be decoded.
+
+A controlled `74 -> 75 -> 74 -> 75` sequence produced six `A5 01 01 23`
+packets with counters `0x1E` through `0x23`, each followed by an `A5 01 01 21`
+packet. The `0x23` packets had changing two-byte values followed by constant
+`80 0A`; the `0x21` packets showed corresponding alternating status bytes.
+The `0x23` and `0x21` roles are provisional until the opposite UART direction
+is captured.
+
+The opposite signal pin also carried the same `A5` protocol at `115200 8N1`
+(120 bytes in a 20-second capture), but with different contents, including
+`... 80 0C` where the first capture used `... 80 0A`. This confirms that both
+UART directions are active and distinct; the direction roles remain provisional
+until verified against the module pin labels.
 
 Use a USB-TTL adapter whose RX input is rated for 5 V, or add a resistor divider
 before its RX input. If the UART is confirmed to be 5 V, level-shift the main
