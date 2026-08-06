@@ -166,6 +166,13 @@ the `0x21` report: register `0x0002` contained `00 00 09 60` (2400, plausibly
 likely the displayed Fahrenheit value). Confirm this mapping with the reverse
 temperature transition before using it for control.
 
+The app exposes additional controls that should be mapped independently:
+sleep, eco, timer, airflow direction, beep, light, generator mode, drying, and
+electricity monitoring, with potentially more device-specific options. The app
+can change airflow direction, while the IR remote only provides sweep control.
+Keep these distinctions in the capture notes; app-only features may have UART
+datapoints that cannot be reproduced through the remote.
+
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
 directions. Separate `A5 01 00 21`/`A5 01 00 23` frames appeared around 46.7
