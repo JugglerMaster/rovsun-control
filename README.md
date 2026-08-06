@@ -208,6 +208,10 @@ fix`, and `down fix`. Left-right options are `left-right flow`, `left flow`,
 `middle flow`, `right flow`, `left fix`, `a bit left fix`, `middle fix`, and `a
 bit right fix`.
 
+The timer is an app-level schedule that combines power on/off, airflow settings,
+fan speed, temperature, repeat days, and time. Treat it as a collection of
+scheduled commands rather than a single UART setting.
+
 The first sleep capture used `standard` and showed a new `00 22 01` field.
 That makes `0x01` the standard-mode candidate, not a generic boolean. Map
 `aged` and `child` before assigning the remaining values. The standard to aged
