@@ -80,10 +80,40 @@ signal GND and yellow is connected to the module TX signal. Connect blue to the
 adapter GND and yellow to the adapter RX. Do not connect the adapter TX or VCC.
 
 First capture the module TX line, then move the adapter RX lead to the module
-RX line and repeat after a power cycle. Try `9600`, `19200`, and `115200` baud,
-using `8N1`. Clean frames beginning with `55 AA` confirm the Tuya MCU protocol.
-Save raw captures or decoded bytes so the baud rate, commands, checksums, and
-datapoints can be reviewed before any replacement is attempted.
+RX line and repeat after a power cycle. With two adapters, connect one adapter
+RX to each direction and leave both adapter TX pins and VCC disconnected. Try
+`9600`, `19200`, and `115200` baud, using `8N1`. Clean frames beginning with
+`55 AA` confirm the Tuya MCU protocol. Save raw captures or decoded bytes so
+the baud rate, commands, checksums, and datapoints can be reviewed before any
+replacement is attempted.
+
+The passive host-side detector can score both directions at once. Install
+`pyserial`, then run it with the two adapter ports:
+
+```bash
+python3 -m pip install pyserial
+python3 tools/tuya-baud-detector.py /dev/ttyUSB0 /dev/ttyUSB1 --duration 10 --verbose
+```
+
+It only reads; unlike generic baud detectors it never sends `AT` or any other
+probe. It reports only checksum-valid Tuya `55 AA` frames. Use `--all` for
+unusual rates or `--baudrates 9600,19200,115200` to specify an exact list. A
+quiet bus can produce no result, so repeat the scan across a power cycle or
+increase `--duration`.
+
+The expected Tuya setting is `8N1`, which is the default. If the wiring is
+correct but no valid frames are found, test framing variants explicitly:
+
+```bash
+python3 tools/tuya-baud-detector.py /dev/ttyUSB0 /dev/ttyUSB1 \
+  --baudrates 9600,19200,115200 --framings 8N1,8N2,8E1,8O1 --duration 10
+```
+
+`--all-framings` also tests 7/8 data bits, none/odd/even parity, and one/two
+stop bits. A valid checksum is required, so random readable bytes do not count
+as a match. Stop-bit variants can be indistinguishable on a receive-only UART;
+this option is a diagnostic fallback, not a reason to assume the protocol is
+not `8N1`.
 
 Initial passive capture on the module TX line produced sustained, structured
 traffic at `115200 8N1`, including repeated `A5 01 01 ...` sequences (270 bytes
@@ -155,6 +185,7 @@ Flash `esphome/rovsun-c3.yaml` over USB-C with `esphome run`.
 
 - `esphome/rovsun-c3.yaml` — replacement firmware (ESPHome Tuya MCU bridge)
 - `sniff/rovsun-sniff.ino` — optional XIAO UART sniffer
+- `tools/tuya-baud-detector.py` — passive host-side baud detector for one or two adapters
 
 ## Notes and safety
 
