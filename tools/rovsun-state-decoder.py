@@ -16,6 +16,7 @@ FAN_CODES = {
     7: "strong wind",
 }
 SLEEP_CODES = {0: "off", 1: "standard", 2: "aged", 3: "child"}
+MODE_CODES = {1: "cooling", 2: "dry", 3: "fan-only"}
 
 
 def crc16_xmodem(data):
@@ -111,6 +112,7 @@ def decode(path):
                 fields.append(f"fan_auto_flag={body[fan_auto + 5]}")
 
         fields.append(field_text("sleep", bounded_field(body, 0x0022, 3), SLEEP_CODES))
+        fields.append(field_text("mode", bounded_field(body, 0x0012, 3), MODE_CODES))
         fields.append(field_text("eco", bounded_field(body, 0x0013, 1)))
         fields.append(field_text("beep", bounded_field(body, 0x0025, 1)))
         fields.append(field_text("light", bounded_field(body, 0x001E, 1)))

@@ -177,6 +177,11 @@ temperature transition before using it for control. The reverse `75 F -> 74 F`
 capture produced `0x0002 = 00 00 09 2E` (2350, plausibly 23.5 C) and
 `0x0227 = 00 00 00 4A` (74), confirming both fields.
 
+Operating-mode comparison identified register `0x0012`: cooling is `0x01`, dry
+is `0x02`, and the earlier fan-only capture carried `0x03`. The changed
+`0x000D` bytes seen in earlier mode captures track other airflow/state values
+and are not the operating-mode field.
+
 Fan captures provisionally identify register `0x0005` as a fan-control field.
 The mute to low-wind capture produced `00 05 02 00 73 00`, while the reverse
 low-wind to mute capture produced `00 05 01 00 73 00`. This confirms distinct
