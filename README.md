@@ -184,6 +184,15 @@ is `0x02`, and the earlier fan-only capture carried `0x03`. The changed
 `0x000D` bytes seen in earlier mode captures track other airflow/state values
 and are not the operating-mode field.
 
+The app's operating-mode list is `auto`, `cool`, `dry`, `fan`, and `heat`.
+The cool to auto capture produced `00 12 00`, identifying auto as `0x00`, and
+the auto to heat capture produced `00 12 04`, identifying heat as `0x04`. The
+complete observed mode table is auto `0x00`, cool `0x01`, dry `0x02`, fan
+`0x03`, and heat `0x04`. The heat capture also included a separate 79 F to 78 F
+temperature change; that did not affect the mode field. Auto may already engage
+heating or cooling based on demand, so its physical behavior is not equivalent
+to explicit heat mode.
+
 Fan captures provisionally identify register `0x0005` as a fan-control field.
 The mute to low-wind capture produced `00 05 02 00 73 00`, while the reverse
 low-wind to mute capture produced `00 05 01 00 73 00`. This confirms distinct

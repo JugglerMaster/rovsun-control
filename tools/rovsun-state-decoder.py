@@ -17,7 +17,7 @@ FAN_CODES = {
     7: "strong wind",
 }
 SLEEP_CODES = {0: "off", 1: "standard", 2: "aged", 3: "child"}
-MODE_CODES = {1: "cooling", 2: "dry", 3: "fan-only"}
+MODE_CODES = {0: "auto", 1: "cooling", 2: "dry", 3: "fan-only", 4: "heat"}
 
 
 def crc16_xmodem(data):
