@@ -157,6 +157,17 @@ mapped from captures; it does not open serial ports or send commands.
 On a cold-start capture it also reports the MCU identity from the long startup
 metadata frame while intentionally omitting the adjacent configuration strings.
 
+Build an offline candidate command from a captured module-to-main template:
+
+```bash
+python3 tools/rovsun-command-builder.py captures-temp-74-to-75/COM10_115200_8N1.bin \
+  --replace 0x0227=0000004B --sequence 0xAA
+```
+
+The builder only prints or writes bytes and never opens a serial port. Do not
+connect its output to the mini-split until command arbitration and stock-module
+isolation have been independently verified.
+
 CRC validation currently passes on 63 complete frames with zero failures. The
 short `0x23` frames are 12 bytes long and carry nearly fixed data (`80 0A`,
 `80 0C`, or `80 0D`) after the CRC; their changing two-byte fields are therefore
@@ -471,6 +482,7 @@ Flash `esphome/rovsun-c3.yaml` over USB-C with `esphome run`.
 - `tools/tuya-baud-detector.py` — passive host-side baud detector for one or two adapters
 - `tools/a5-stream-inspector.py` — offline A5 stream splitter and sequence inspector
 - `tools/rovsun-state-decoder.py` — read-only decoder for confirmed state fields in saved A5 captures
+- `tools/rovsun-command-builder.py` — offline-only command template builder with CRC recalculation
 
 ## Notes and safety
 
