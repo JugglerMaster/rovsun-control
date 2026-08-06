@@ -202,6 +202,12 @@ airflow direction control. Keep these distinctions in the capture notes;
 app-only features may have UART datapoints that cannot be reproduced through the
 remote.
 
+The app has separate eight-option airflow axes. Up-down options are `up-down
+flow`, `up flow`, `down flow`, `up fix`, `above fix`, `middle fix`, `above down
+fix`, and `down fix`. Left-right options are `left-right flow`, `left flow`,
+`middle flow`, `right flow`, `left fix`, `a bit left fix`, `middle fix`, and `a
+bit right fix`.
+
 The first sleep capture used `standard` and showed a new `00 22 01` field.
 That makes `0x01` the standard-mode candidate, not a generic boolean. Map
 `aged` and `child` before assigning the remaining values. The standard to aged
@@ -223,6 +229,24 @@ confirming `0x00` disabled.
 The light off to on capture showed `00 1E 01`, making register `0x001E` the
 light setting candidate with `0x01` on. The reverse capture showed `00 1E 00`,
 confirming `0x00` off.
+
+The first up-down airflow transition (`up-down flow` to `up flow`) produced
+`00 11 02`, making register `0x0011` the up-down direction candidate with
+`0x02` likely representing up flow. The remaining up-down values still need
+controlled captures. The up-flow to down-flow transition produced `00 11 03`,
+identifying `0x03` as the down-flow candidate. A clean repeat confirmed that
+value, and the down-flow to up-fix capture produced `00 11 09`, identifying
+`0x09` as the up-fix candidate. The up-fix to above-fix capture produced
+`00 11 0A`, identifying `0x0A` as the above-fix candidate. The above-fix to
+middle-fix capture produced `00 11 0B`, identifying `0x0B` as the middle-fix
+candidate. The middle-fix to above-down-fix capture produced `00 11 0C`,
+identifying `0x0C` as the above-down-fix candidate.
+The above-down-fix to down-fix capture produced `00 11 0D`, identifying
+`0x0D` as the down-fix candidate. Confirm the default up-down-flow value before
+committing the full axis table. The down-fix to up-down-flow capture produced
+`00 11 01`, completing the observed table: flow `0x01`, up `0x02`, down `0x03`,
+up fix `0x09`, above fix `0x0A`, middle fix `0x0B`, above-down fix `0x0C`, and
+down fix `0x0D`.
 
 Generator mode is a three-level setting rather than a boolean. The initial
 capture identified register `0x002D` with LV1 as `0x01`; the LV1 to LV2 capture
