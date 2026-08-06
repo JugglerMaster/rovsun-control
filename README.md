@@ -299,6 +299,9 @@ must be preserved by the decoder.
 A second cold-start capture reproduced the same handshake order, full-report
 sequence, and MCU identity. Absolute timestamps shifted by about one second
 with the power-restore timing, but the startup structure was otherwise stable.
+A third cold-start capture reproduced the same sequence again, including the
+same long metadata frame and MCU identity. Startup behavior is now sufficiently
+repeatable for initialization logic design.
 
 Generator mode is a three-level setting rather than a boolean. The initial
 capture identified register `0x002D` with LV1 as `0x01`; the LV1 to LV2 capture
