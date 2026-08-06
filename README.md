@@ -154,6 +154,8 @@ python3 tools/rovsun-state-decoder.py captures-temp-74-to-75/COM6_115200_8N1.bin
 
 The decoder is read-only and reports only fields confirmed or provisionally
 mapped from captures; it does not open serial ports or send commands.
+On a cold-start capture it also reports the MCU identity from the long startup
+metadata frame while intentionally omitting the adjacent configuration strings.
 
 CRC validation currently passes on 63 complete frames with zero failures. The
 short `0x23` frames are 12 bytes long and carry nearly fixed data (`80 0A`,
@@ -293,6 +295,10 @@ The metadata includes MCU identity `ACMCU/V9-R10FT27AC-FV001.001.030` and
 appears to contain module configuration strings. Thus `0x23` is usually a
 12-byte request/keep-alive, but startup also uses a long metadata variant that
 must be preserved by the decoder.
+
+A second cold-start capture reproduced the same handshake order, full-report
+sequence, and MCU identity. Absolute timestamps shifted by about one second
+with the power-restore timing, but the startup structure was otherwise stable.
 
 Generator mode is a three-level setting rather than a boolean. The initial
 capture identified register `0x002D` with LV1 as `0x01`; the LV1 to LV2 capture

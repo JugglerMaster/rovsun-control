@@ -3,6 +3,7 @@
 
 import argparse
 from pathlib import Path
+import re
 
 
 FAN_CODES = {
@@ -87,6 +88,12 @@ def decode(path):
     data = path.read_bytes()
     print(f"{path}: {len(data)} bytes")
     for offset, frame in frames(data):
+        if frame[3] == 0x23 and len(frame) > 50:
+            text = "".join(chr(value) if 32 <= value < 127 else " " for value in frame)
+            match = re.search(r'"MCU"\s*:\s*\[\s*"([^"]+)"', text)
+            if match:
+                print(f"  offset={offset} startup_mcu={match.group(1)}")
+            continue
         if frame[3] != 0x21:
             continue
         body = frame[10:]
