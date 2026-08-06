@@ -185,6 +185,7 @@ Flash `esphome/rovsun-c3.yaml` over USB-C with `esphome run`.
 
 - `esphome/rovsun-c3.yaml` — replacement firmware (ESPHome Tuya MCU bridge)
 - `sniff/rovsun-sniff.ino` — optional XIAO UART sniffer
+- `sniff/rovsun-leonardo-sniff/rovsun-leonardo-sniff.ino` — Arduino Micro/Leonardo receive-only second-channel logger
 - `tools/tuya-baud-detector.py` — passive host-side baud detector for one or two adapters
 
 ## Notes and safety
