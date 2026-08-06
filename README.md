@@ -111,6 +111,10 @@ for unusual rates or `--baudrates 9600,19200,115200` to specify an exact list.
 A quiet bus can produce no result, so repeat the scan across a power cycle or
 increase `--duration`.
 
+Native-USB Micro/Leonardo boards can reset or change COM port when a host opens
+them. The detector deasserts DTR/RTS before opening ports; use the currently
+enumerated COM port rather than assuming it remains `COM8`.
+
 The expected Tuya setting is `8N1`, which is the default. If the wiring is
 correct but no valid frames are found, test framing variants explicitly:
 

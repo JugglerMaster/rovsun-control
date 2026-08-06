@@ -76,22 +76,22 @@ def capture(ports, baudrate, framing, duration):
     opened = []
     try:
         for port in ports:
-            ser = serial.Serial(
-                port=port,
-                baudrate=baudrate,
-                bytesize=serial.SEVENBITS if data_bits == 7 else serial.EIGHTBITS,
-                parity=parity,
-                stopbits=stop_bits,
-                timeout=0,
-                write_timeout=0,
-                xonxoff=False,
-                rtscts=False,
-                dsrdtr=False,
-            )
+            ser = serial.Serial()
+            ser.port = port
+            ser.baudrate = baudrate
+            ser.bytesize = serial.SEVENBITS if data_bits == 7 else serial.EIGHTBITS
+            ser.parity = parity
+            ser.stopbits = stop_bits
+            ser.timeout = 0
+            ser.write_timeout = 0
+            ser.xonxoff = False
+            ser.rtscts = False
+            ser.dsrdtr = False
             # Do not assert modem-control outputs on an adapter connected to
             # the target. This is receive-only, but adapters differ at open.
             ser.dtr = False
             ser.rts = False
+            ser.open()
             ser.reset_input_buffer()
             opened.append((port, ser))
 
