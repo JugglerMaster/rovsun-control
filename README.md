@@ -177,6 +177,9 @@ app's labels into generic low/medium/high values. The low-wind to `auto`
 capture produced `00 05 00 00 73 01`; in this device, `auto` means a fixed fan
 speed with compressor control responding to cooling demand, not automatic fan
 speed selection. Treat the trailing `0x01` as an auto-behavior flag candidate.
+The auto to mid-wind capture produced `00 05 04 00 73 00`, identifying `0x04`
+as the mid-wind speed code and confirming the auto flag clears for a normal
+speed selection.
 
 The app exposes additional controls that should be mapped independently:
 sleep, eco, timer, fan mute, airflow direction, beep, light, generator mode,
