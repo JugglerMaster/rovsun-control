@@ -183,6 +183,8 @@ speed selection. The mid-wind to mid-low-wind capture produced
 `00 05 03 00 73 00`, identifying `0x03` as the mid-low-wind code.
 The mid-low-wind to mid-high-wind capture produced `00 05 05 00 73 00`,
 identifying `0x05` as the mid-high-wind code.
+The mid-high-wind to high-wind capture produced `00 05 06 00 73 00`,
+identifying `0x06` as the high-wind code.
 
 The app exposes additional controls that should be mapped independently:
 sleep, eco, timer, fan mute, airflow direction, beep, light, generator mode,
