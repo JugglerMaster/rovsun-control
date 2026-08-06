@@ -111,9 +111,18 @@ for unusual rates or `--baudrates 9600,19200,115200` to specify an exact list.
 A quiet bus can produce no result, so repeat the scan across a power cycle or
 increase `--duration`.
 
-Native-USB Micro/Leonardo boards can reset or change COM port when a host opens
-them. The detector deasserts DTR/RTS before opening ports; use the currently
-enumerated COM port rather than assuming it remains `COM8`.
+Native-USB Micro/Leonardo boards require DTR for their USB CDC data endpoint.
+Include the logger port with `--dtr-ports`; this resets it and waits six seconds
+for the logger to start:
+
+```bash
+python3 tools/tuya-baud-detector.py COM6 COM10 --protocol a5 \
+  --dtr-ports COM10 --baudrates 115200 --duration 30 --raw-dir captures
+```
+
+The detector keeps DTR/RTS deasserted on ordinary USB-TTL adapters. The native
+USB board can briefly unregister or receive a new COM number during reset, so
+use its currently enumerated port.
 
 The expected Tuya setting is `8N1`, which is the default. If the wiring is
 correct but no valid frames are found, test framing variants explicitly:

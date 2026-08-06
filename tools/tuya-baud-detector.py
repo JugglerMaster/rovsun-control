@@ -67,7 +67,7 @@ def a5_candidates(data):
     return candidates
 
 
-def capture(ports, baudrate, framing, duration):
+def capture(ports, baudrate, framing, duration, dtr_ports=()):
     """Capture all supplied ports at one baud rate without transmitting."""
     data_bits = int(framing[0])
     parity = {"N": serial.PARITY_NONE, "E": serial.PARITY_EVEN,
@@ -89,13 +89,17 @@ def capture(ports, baudrate, framing, duration):
             ser.dsrdtr = False
             # Do not assert modem-control outputs on an adapter connected to
             # the target. This is receive-only, but adapters differ at open.
-            ser.dtr = False
+            ser.dtr = port in dtr_ports
             ser.rts = False
             ser.open()
             ser.reset_input_buffer()
             opened.append((port, ser))
 
         captured = {port: bytearray() for port in ports}
+        if dtr_ports:
+            # Native-USB Arduino boards reset when DTR is asserted. Allow the
+            # sketch to finish setup and the USB endpoint to reconnect.
+            time.sleep(6)
         deadline = time.monotonic() + duration
         while time.monotonic() < deadline:
             received = False
@@ -168,6 +172,10 @@ def main():
         "--raw-dir", type=Path,
         help="save each capture as a raw .bin file in this directory",
     )
+    parser.add_argument(
+        "--dtr-ports",
+        help="comma-separated native-USB ports that require DTR (for example COM10)",
+    )
     args = parser.parse_args()
     if args.duration <= 0:
         parser.error("--duration must be positive")
@@ -175,6 +183,7 @@ def main():
         parser.error("use at most two serial ports")
     if args.raw_dir:
         args.raw_dir.mkdir(parents=True, exist_ok=True)
+    dtr_ports = tuple(item.strip() for item in (args.dtr_ports or "").split(",") if item.strip())
 
     baudrates = args.baudrates or (ALL_BAUDRATES if args.all else DEFAULT_BAUDRATES)
     framings = args.framings or (ALL_FRAMINGS if args.all_framings else DEFAULT_FRAMINGS)
@@ -183,7 +192,7 @@ def main():
         for framing in framings:
             print(f"Scanning {baudrate} {framing} for {args.duration:g}s...", flush=True)
             try:
-                captured = capture(args.ports, baudrate, framing, args.duration)
+                captured = capture(args.ports, baudrate, framing, args.duration, dtr_ports)
             except serial.SerialException as exc:
                 parser.error(str(exc))
             for port, data in captured.items():
