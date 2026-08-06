@@ -185,6 +185,11 @@ The mid-low-wind to mid-high-wind capture produced `00 05 05 00 73 00`,
 identifying `0x05` as the mid-high-wind code.
 The mid-high-wind to high-wind capture produced `00 05 06 00 73 00`,
 identifying `0x06` as the high-wind code.
+The high-wind to string-wind capture produced `00 05 07 00 73 00`,
+identifying `0x07` as the string-wind code. The observed fan table is now:
+`0x01` mute, `0x02` low wind, `0x03` mid-low wind, `0x04` mid wind, `0x05`
+mid-high wind, `0x06` high wind, and `0x07` string wind. Auto uses `0x00` with
+the separate behavior flag `0x01`.
 
 The app exposes additional controls that should be mapped independently:
 sleep, eco, timer, fan mute, airflow direction, beep, light, generator mode,
