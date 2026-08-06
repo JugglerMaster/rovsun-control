@@ -6,19 +6,27 @@ from pathlib import Path
 
 
 def frames(data):
-    """Split a stream at A5 markers and return offset plus candidate bytes."""
-    starts = []
+    """Return A5 frames using byte 7 as the declared total frame length."""
     offset = 0
     while True:
-        offset = data.find(b"\xa5", offset)
-        if offset < 0:
-            break
-        starts.append(offset)
-        offset += 1
+        start = data.find(b"\xa5", offset)
+        if start < 0:
+            return
+        if len(data) - start < 8:
+            yield start, bytes(data[start:]), False
+            return
 
-    for index, start in enumerate(starts):
-        end = starts[index + 1] if index + 1 < len(starts) else len(data)
-        yield start, bytes(data[start:end])
+        declared_length = data[start + 7]
+        end = start + declared_length
+        if declared_length >= 8 and end <= len(data):
+            yield start, bytes(data[start:end]), True
+            offset = end
+            continue
+
+        next_start = data.find(b"\xa5", start + 1)
+        end = len(data) if next_start < 0 else next_start
+        yield start, bytes(data[start:end]), False
+        offset = end
 
 
 def sequence(frame):
@@ -35,7 +43,9 @@ def describe(frame):
     command = f"0x{frame[3]:02X}" if len(frame) > 3 else "?"
     seq = sequence(frame)
     sequence_text = f"seq=0x{seq:02X}" if seq is not None else "seq=?"
-    return f"cmd={command} {sequence_text} len={len(frame)} {frame.hex(' ')}"
+    declared = frame[7] if len(frame) > 7 else None
+    declared_text = f"declared={declared}" if declared is not None else "declared=?"
+    return f"cmd={command} {sequence_text} len={len(frame)} {declared_text} {frame.hex(' ')}"
 
 
 def inspect(path):
@@ -45,8 +55,9 @@ def inspect(path):
     if not found:
         print("  no A5 markers")
         return
-    for offset, frame in found:
-        print(f"  offset={offset}: {describe(frame)}")
+    for offset, frame, complete in found:
+        status = "complete" if complete else "incomplete/candidate"
+        print(f"  offset={offset} ({status}): {describe(frame)}")
 
 
 def main():
