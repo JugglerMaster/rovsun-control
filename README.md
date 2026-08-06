@@ -173,7 +173,10 @@ The mute to low-wind capture produced `00 05 02 00 73 00`, while the reverse
 low-wind to mute capture produced `00 05 01 00 73 00`. This confirms distinct
 codes `0x01` (mute candidate) and `0x02` (low wind). An earlier `0x07` sample
 was misattributed to low wind and remains unidentified. Do not collapse the
-app's labels into generic low/medium/high values.
+app's labels into generic low/medium/high values. The low-wind to `auto`
+capture produced `00 05 00 00 73 01`; in this device, `auto` means a fixed fan
+speed with compressor control responding to cooling demand, not automatic fan
+speed selection. Treat the trailing `0x01` as an auto-behavior flag candidate.
 
 The app exposes additional controls that should be mapped independently:
 sleep, eco, timer, fan mute, airflow direction, beep, light, generator mode,
