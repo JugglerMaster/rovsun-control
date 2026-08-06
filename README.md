@@ -286,6 +286,14 @@ completing the observed left-right table: left flow `0x02`, middle flow `0x03`,
 right flow `0x04`, left fix `0x09`, a bit left fix `0x0A`, middle fix `0x0B`,
 a bit right fix `0x0C`, and left-right flow `0x0D`.
 
+The cold-start capture showed startup traffic distinct from normal operation:
+an initial `A5 01 00 21` frame, full `0x21` state reports beginning about 5.2
+seconds after power restoration, and a 211-byte `A5 01 00 23` metadata frame.
+The metadata includes MCU identity `ACMCU/V9-R10FT27AC-FV001.001.030` and
+appears to contain module configuration strings. Thus `0x23` is usually a
+12-byte request/keep-alive, but startup also uses a long metadata variant that
+must be preserved by the decoder.
+
 Generator mode is a three-level setting rather than a boolean. The initial
 capture identified register `0x002D` with LV1 as `0x01`; the LV1 to LV2 capture
 produced `00 2D 02`, and the LV2 to LV3 capture produced `00 2D 03`. The
