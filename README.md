@@ -206,7 +206,8 @@ The first sleep capture used `standard` and showed a new `00 22 01` field.
 That makes `0x01` the standard-mode candidate, not a generic boolean. Map
 `aged` and `child` before assigning the remaining values. The standard to aged
 capture changed the field to `00 22 02`, identifying `0x02` as the aged-mode
-candidate.
+candidate. The aged to child capture produced `00 22 03`, identifying `0x03`
+as the child-mode candidate.
 
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
