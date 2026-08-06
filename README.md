@@ -130,6 +130,17 @@ and hex bytes. It is useful for measuring idle heartbeat intervals; timestamps
 are chunk-level because USB serial drivers may deliver several UART bytes at
 once.
 
+Inspect saved raw streams without touching the hardware:
+
+```bash
+python3 tools/a5-stream-inspector.py captures-fan-change/COM6_115200_8N1.bin \
+  captures-fan-change/COM10_115200_8N1.bin
+```
+
+The inspector splits candidates at `A5` markers, reports command and normalized
+sequence fields, and preserves the full candidate bytes for later framing and
+checksum analysis. It does not open ports or transmit anything.
+
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
 directions. Separate `A5 01 00 21`/`A5 01 00 23` frames appeared around 46.7
@@ -222,6 +233,7 @@ Flash `esphome/rovsun-c3.yaml` over USB-C with `esphome run`.
 - `sniff/rovsun-sniff.ino` — optional XIAO UART sniffer
 - `sniff/rovsun-leonardo-sniff/rovsun-leonardo-sniff.ino` — Arduino Micro/Leonardo raw receive-only second-channel logger
 - `tools/tuya-baud-detector.py` — passive host-side baud detector for one or two adapters
+- `tools/a5-stream-inspector.py` — offline A5 stream splitter and sequence inspector
 
 ## Notes and safety
 
