@@ -211,6 +211,15 @@ as the child-mode candidate. Returning child sleep to off produced `00 22 00`,
 confirming the complete mapping: off `0x00`, standard `0x01`, aged `0x02`, and
 child `0x03`.
 
+Eco captures showed matching state flags at `0x0013` and `0x00DF`: both were
+`0x01` with Eco enabled and `0x00` with Eco disabled. Enabling Eco also moves
+the target to `79 F` and prevents setting it below `79 F`; this is a behavior
+constraint in addition to the flag.
+
+The beep off to on capture showed `00 25 01`, making register `0x0025` the beep
+setting candidate with `0x01` enabled. The reverse capture showed `00 25 00`,
+confirming `0x00` disabled.
+
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
 directions. Separate `A5 01 00 21`/`A5 01 00 23` frames appeared around 46.7
