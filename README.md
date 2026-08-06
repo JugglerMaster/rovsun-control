@@ -194,12 +194,17 @@ the separate behavior flag `0x01`.
 The app exposes additional controls that should be mapped independently:
 sleep, eco, timer, fan mute, airflow direction, beep, light, generator mode,
 drying, and electricity monitoring, with potentially more device-specific
-options. Its fan selector has eight distinct labels: `strong wind`, `high wind`,
+options. Sleep has three app modes: `standard`, `aged`, and `child`. Its fan
+selector has eight distinct labels: `strong wind`, `high wind`,
 `mid high wind`, `mid wind`, `mid low wind`, `low wind`, `mute`, and `auto`.
 Both the app and IR remote can set sweep, but only the app provides independent
 airflow direction control. Keep these distinctions in the capture notes;
 app-only features may have UART datapoints that cannot be reproduced through the
 remote.
+
+The first sleep capture used `standard` and showed a new `00 22 01` field.
+That makes `0x01` the standard-mode candidate, not a generic boolean. Map
+`aged` and `child` before assigning the remaining values.
 
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
