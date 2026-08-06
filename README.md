@@ -322,6 +322,25 @@ packet fields, timing intervals, and checksum must not be reused for Rovsun;
 only the separation between command delivery, confirmed state, and polling is
 being used as a design reference.
 
+### Startup behavior to capture
+
+The [GREE wired-protocol startup discussion](https://github.com/maxim-smirnov/gree-wired-proto/issues/1)
+is a reminder to capture startup separately from normal operation. That issue
+does not provide usable startup logs, but the same investigation is needed for
+Rovsun. Begin recording both UART directions before powering the unit, then
+look for:
+
+- boot or handshake frames before normal state traffic;
+- the first complete state report after power-on;
+- whether `A5 01 01 21` and `A5 01 01 23` begin immediately or only after a request;
+- which direction initiates the exchange and which direction reports state;
+- whether the approximately 29-second traffic is a heartbeat, status poll, or both;
+- whether commands work before the periodic exchange is established.
+
+Save the startup capture with timestamps and do not inject traffic during this
+investigation. These observations will define the replacement controller's
+initialization and polling sequence.
+
 The expected Tuya setting is `8N1`, which is the default. If the wiring is
 correct but no valid frames are found, test framing variants explicitly:
 
