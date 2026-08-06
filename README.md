@@ -168,6 +168,11 @@ temperature transition before using it for control. The reverse `75 F -> 74 F`
 capture produced `0x0002 = 00 00 09 2E` (2350, plausibly 23.5 C) and
 `0x0227 = 00 00 00 4A` (74), confirming both fields.
 
+Fan captures provisionally identify register `0x0005` as the fan-speed field:
+the high-state report included `00 05 07 00 73 00`, while the controlled high
+to low transition produced `00 05 01 00 73 00`. The values `0x01` (low) and
+`0x07` (high) need confirmation against the medium and auto settings.
+
 The app exposes additional controls that should be mapped independently:
 sleep, eco, timer, airflow direction, beep, light, generator mode, drying, and
 electricity monitoring, with potentially more device-specific options. Both the
