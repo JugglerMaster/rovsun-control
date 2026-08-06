@@ -153,6 +153,13 @@ not temperature or fan values. State changes appear in the variable-length
 `0x21` reports, which contain recurring register/list blocks that still need to
 be mapped.
 
+Normal `0x21` report bodies begin with `0C 0C` and commonly contain 6-byte
+register/value blocks, including recurring registers `0x0002`, `0x0003`,
+`0x0005`, `0x000D`, `0x0011`, `0x0060`, and `0x0065`. Larger reports also carry
+a variable-length capability/list block beginning at register `0x0039`. These
+are provisional structural observations; register meanings require controlled
+state captures.
+
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
 directions. Separate `A5 01 00 21`/`A5 01 00 23` frames appeared around 46.7
