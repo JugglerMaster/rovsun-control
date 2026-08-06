@@ -146,6 +146,13 @@ The current captures establish that bytes 8-9 are a big-endian CRC-16/XMODEM
 calculated over the frame with those two CRC bytes removed. The inspector marks
 frames with `crc=ok` or `crc=BAD`.
 
+CRC validation currently passes on 63 complete frames with zero failures. The
+short `0x23` frames are 12 bytes long and carry nearly fixed data (`80 0A`,
+`80 0C`, or `80 0D`) after the CRC; their changing two-byte fields are therefore
+not temperature or fan values. State changes appear in the variable-length
+`0x21` reports, which contain recurring register/list blocks that still need to
+be mapped.
+
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
 directions. Separate `A5 01 00 21`/`A5 01 00 23` frames appeared around 46.7
