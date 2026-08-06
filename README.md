@@ -146,6 +146,15 @@ The current captures establish that bytes 8-9 are a big-endian CRC-16/XMODEM
 calculated over the frame with those two CRC bytes removed. The inspector marks
 frames with `crc=ok` or `crc=BAD`.
 
+Decode the confirmed state fields from a saved capture with:
+
+```bash
+python3 tools/rovsun-state-decoder.py captures-temp-74-to-75/COM6_115200_8N1.bin
+```
+
+The decoder is read-only and reports only fields confirmed or provisionally
+mapped from captures; it does not open serial ports or send commands.
+
 CRC validation currently passes on 63 complete frames with zero failures. The
 short `0x23` frames are 12 bytes long and carry nearly fixed data (`80 0A`,
 `80 0C`, or `80 0D`) after the CRC; their changing two-byte fields are therefore
@@ -162,7 +171,7 @@ state captures.
 
 A saved `74 F -> 75 F` capture isolated two likely target-temperature fields in
 the `0x21` report: register `0x0002` contained `00 00 09 60` (2400, plausibly
-24.0 C in tenths) and register `0x0227` contained `00 00 00 4B` (75 decimal,
+24.0 C in hundredths) and register `0x0227` contained `00 00 00 4B` (75 decimal,
 likely the displayed Fahrenheit value). Confirm this mapping with the reverse
 temperature transition before using it for control. The reverse `75 F -> 74 F`
 capture produced `0x0002 = 00 00 09 2E` (2350, plausibly 23.5 C) and
@@ -374,6 +383,7 @@ Flash `esphome/rovsun-c3.yaml` over USB-C with `esphome run`.
 - `sniff/rovsun-leonardo-sniff/rovsun-leonardo-sniff.ino` — Arduino Micro/Leonardo raw receive-only second-channel logger
 - `tools/tuya-baud-detector.py` — passive host-side baud detector for one or two adapters
 - `tools/a5-stream-inspector.py` — offline A5 stream splitter and sequence inspector
+- `tools/rovsun-state-decoder.py` — read-only decoder for confirmed state fields in saved A5 captures
 
 ## Notes and safety
 
