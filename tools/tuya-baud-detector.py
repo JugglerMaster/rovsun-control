@@ -96,6 +96,7 @@ def capture(ports, baudrate, framing, duration, dtr_ports=()):
             opened.append((port, ser))
 
         captured = {port: bytearray() for port in ports}
+        events = {port: [] for port in ports}
         if dtr_ports:
             # Native-USB Arduino boards reset when DTR is asserted. Allow the
             # sketch to finish setup and the USB endpoint to reconnect.
@@ -107,10 +108,11 @@ def capture(ports, baudrate, framing, duration, dtr_ports=()):
                 chunk = ser.read(ser.in_waiting or 1)
                 if chunk:
                     captured[port].extend(chunk)
+                    events[port].append((time.monotonic() - (deadline - duration), bytes(chunk)))
                     received = True
             if not received:
                 time.sleep(0.005)
-        return captured
+        return captured, events
     finally:
         for _, ser in opened:
             ser.close()
@@ -173,6 +175,10 @@ def main():
         help="save each capture as a raw .bin file in this directory",
     )
     parser.add_argument(
+        "--timestamp-dir", type=Path,
+        help="save timestamped receive chunks as .tsv files in this directory",
+    )
+    parser.add_argument(
         "--dtr-ports",
         help="comma-separated native-USB ports that require DTR (for example COM10)",
     )
@@ -183,6 +189,8 @@ def main():
         parser.error("use at most two serial ports")
     if args.raw_dir:
         args.raw_dir.mkdir(parents=True, exist_ok=True)
+    if args.timestamp_dir:
+        args.timestamp_dir.mkdir(parents=True, exist_ok=True)
     dtr_ports = tuple(item.strip() for item in (args.dtr_ports or "").split(",") if item.strip())
 
     baudrates = args.baudrates or (ALL_BAUDRATES if args.all else DEFAULT_BAUDRATES)
@@ -192,13 +200,19 @@ def main():
         for framing in framings:
             print(f"Scanning {baudrate} {framing} for {args.duration:g}s...", flush=True)
             try:
-                captured = capture(args.ports, baudrate, framing, args.duration, dtr_ports)
+                captured, events = capture(args.ports, baudrate, framing, args.duration, dtr_ports)
             except serial.SerialException as exc:
                 parser.error(str(exc))
             for port, data in captured.items():
                 if args.raw_dir:
                     filename = f"{port}_{baudrate}_{framing}.bin".replace(":", "_")
                     (args.raw_dir / filename).write_bytes(data)
+                if args.timestamp_dir:
+                    filename = f"{port}_{baudrate}_{framing}.tsv".replace(":", "_")
+                    with (args.timestamp_dir / filename).open("w", encoding="ascii") as log:
+                        log.write("seconds\thex\n")
+                        for elapsed, chunk in events[port]:
+                            log.write(f"{elapsed:.6f}\t{chunk.hex(' ')}\n")
 
                 if args.protocol == "tuya":
                     findings = tuya_frames(data)

@@ -117,12 +117,24 @@ for the logger to start:
 
 ```bash
 python3 tools/tuya-baud-detector.py COM6 COM10 --protocol a5 \
-  --dtr-ports COM10 --baudrates 115200 --duration 30 --raw-dir captures
+  --dtr-ports COM10 --baudrates 115200 --duration 30 --raw-dir captures \
+  --timestamp-dir captures
 ```
 
 The detector keeps DTR/RTS deasserted on ordinary USB-TTL adapters. The native
 USB board can briefly unregister or receive a new COM number during reset, so
 use its currently enumerated port.
+
+`--timestamp-dir` writes one TSV row per received chunk with elapsed seconds
+and hex bytes. It is useful for measuring idle heartbeat intervals; timestamps
+are chunk-level because USB serial drivers may deliver several UART bytes at
+once.
+
+An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
+approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
+directions. Separate `A5 01 00 21`/`A5 01 00 23` frames appeared around 46.7
+seconds. This is consistent with periodic status/keep-alive traffic, but more
+idle captures are needed before treating 29 seconds as a fixed interval.
 
 The expected Tuya setting is `8N1`, which is the default. If the wiring is
 correct but no valid frames are found, test framing variants explicitly:
