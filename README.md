@@ -229,6 +229,10 @@ capture identified register `0x002D` with LV1 as `0x01`; the LV1 to LV2 capture
 produced `00 2D 02`, and the LV2 to LV3 capture produced `00 2D 03`. The
 complete generator mapping is LV1 `0x01`, LV2 `0x02`, and LV3 `0x03`.
 
+The drying off to on capture showed `00 27 01`, making register `0x0027` the
+drying setting with `0x01` enabled. The reverse capture showed `00 27 00`,
+confirming `0x00` disabled.
+
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
 directions. Separate `A5 01 00 21`/`A5 01 00 23` frames appeared around 46.7
