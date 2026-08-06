@@ -171,16 +171,19 @@ capture produced `0x0002 = 00 00 09 2E` (2350, plausibly 23.5 C) and
 Fan captures provisionally identify register `0x0005` as a fan-control field:
 the earlier low-wind report included `00 05 07 00 73 00`, while the latest
 low-wind to mute transition produced `00 05 01 00 73 00`. The values `0x07`
-(low wind) and `0x01` (mute candidate) need confirmation against medium, high,
-and auto settings.
+(low wind) and `0x01` (mute candidate) need confirmation against the other six
+named options; do not collapse the app's labels into generic low/medium/high
+values.
 
 The app exposes additional controls that should be mapped independently:
 sleep, eco, timer, fan mute, airflow direction, beep, light, generator mode,
 drying, and electricity monitoring, with potentially more device-specific
-options. Both the app and IR remote can set sweep, but only the app provides
-independent airflow direction control. Keep these distinctions in the capture
-notes; app-only features may have UART datapoints that cannot be reproduced
-through the remote.
+options. Its fan selector has eight distinct labels: `string wind`, `high wind`,
+`mid high wind`, `mid wind`, `mid low wind`, `low wind`, `mute`, and `auto`.
+Both the app and IR remote can set sweep, but only the app provides independent
+airflow direction control. Keep these distinctions in the capture notes;
+app-only features may have UART datapoints that cannot be reproduced through the
+remote.
 
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
