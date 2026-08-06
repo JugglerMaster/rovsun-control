@@ -142,6 +142,10 @@ and normalized sequence fields, and preserves candidate bytes for later
 checksum analysis. It falls back to the next `A5` marker for incomplete or
 invalid candidates. It does not open ports or transmit anything.
 
+The current captures establish that bytes 8-9 are a big-endian CRC-16/XMODEM
+calculated over the frame with those two CRC bytes removed. The inspector marks
+frames with `crc=ok` or `crc=BAD`.
+
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
 directions. Separate `A5 01 00 21`/`A5 01 00 23` frames appeared around 46.7
