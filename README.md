@@ -160,6 +160,12 @@ a variable-length capability/list block beginning at register `0x0039`. These
 are provisional structural observations; register meanings require controlled
 state captures.
 
+A saved `74 F -> 75 F` capture isolated two likely target-temperature fields in
+the `0x21` report: register `0x0002` contained `00 00 09 60` (2400, plausibly
+24.0 C in tenths) and register `0x0227` contained `00 00 00 4B` (75 decimal,
+likely the displayed Fahrenheit value). Confirm this mapping with the reverse
+temperature transition before using it for control.
+
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
 directions. Separate `A5 01 00 21`/`A5 01 00 23` frames appeared around 46.7
