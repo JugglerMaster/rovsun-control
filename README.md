@@ -87,8 +87,8 @@ RX to each direction and leave both adapter TX pins and VCC disconnected. Try
 the baud rate, commands, checksums, and datapoints can be reviewed before any
 replacement is attempted.
 
-The passive host-side detector can score both directions at once. Install
-`pyserial`, then run it with the two adapter ports:
+The passive host-side detector can capture both directions at once. Install
+`pyserial`, then run it with the two raw receive ports:
 
 ```bash
 python3 -m pip install pyserial
@@ -96,9 +96,19 @@ python3 tools/tuya-baud-detector.py /dev/ttyUSB0 /dev/ttyUSB1 --duration 10 --ve
 ```
 
 It only reads; unlike generic baud detectors it never sends `AT` or any other
-probe. It reports only checksum-valid Tuya `55 AA` frames. Use `--all` for
-unusual rates or `--baudrates 9600,19200,115200` to specify an exact list. A
-quiet bus can produce no result, so repeat the scan across a power cycle or
+probe. By default it reports only checksum-valid Tuya `55 AA` frames. For the
+observed Rovsun protocol, use raw mode or the lightweight `A5` marker mode and
+save each stream for later decoding:
+
+```bash
+python3 tools/tuya-baud-detector.py COM6 COM8 --protocol a5 \
+  --baudrates 115200 --duration 30 --verbose --raw-dir captures
+```
+
+The Arduino Micro/Leonardo logger on `COM8` emits captured UART bytes unchanged;
+the CP2102 on `COM6` should be connected to the other direction. Use `--all`
+for unusual rates or `--baudrates 9600,19200,115200` to specify an exact list.
+A quiet bus can produce no result, so repeat the scan across a power cycle or
 increase `--duration`.
 
 The expected Tuya setting is `8N1`, which is the default. If the wiring is
@@ -185,7 +195,7 @@ Flash `esphome/rovsun-c3.yaml` over USB-C with `esphome run`.
 
 - `esphome/rovsun-c3.yaml` — replacement firmware (ESPHome Tuya MCU bridge)
 - `sniff/rovsun-sniff.ino` — optional XIAO UART sniffer
-- `sniff/rovsun-leonardo-sniff/rovsun-leonardo-sniff.ino` — Arduino Micro/Leonardo receive-only second-channel logger
+- `sniff/rovsun-leonardo-sniff/rovsun-leonardo-sniff.ino` — Arduino Micro/Leonardo raw receive-only second-channel logger
 - `tools/tuya-baud-detector.py` — passive host-side baud detector for one or two adapters
 
 ## Notes and safety

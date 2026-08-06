@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Passively find a baud rate by validating Tuya MCU 55 AA frames.
+"""Passively inspect one or two UART streams without transmitting.
 
 This tool intentionally never writes to the serial ports. Use one port for
 each UART direction when possible; ports supplied together are sampled at the
@@ -7,6 +7,7 @@ same baud rate and during the same capture window.
 """
 
 import argparse
+from pathlib import Path
 import re
 import time
 
@@ -51,6 +52,19 @@ def frame_summary(frame):
     command = frame[3]
     payload_length = (frame[4] << 8) | frame[5]
     return f"cmd=0x{command:02x} len={payload_length} {frame.hex(' ')}"
+
+
+def a5_candidates(data):
+    """Return offsets and short samples for the observed A5 protocol."""
+    candidates = []
+    offset = 0
+    while True:
+        offset = data.find(b"\xa5", offset)
+        if offset < 0:
+            break
+        candidates.append((offset, bytes(data[offset:offset + 32])))
+        offset += 1
+    return candidates
 
 
 def capture(ports, baudrate, framing, duration):
@@ -119,7 +133,7 @@ def parse_framings(value):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Passively detect baud rates from checksum-valid Tuya 55 AA frames"
+        description="Passively inspect one or two receive-only UART streams"
     )
     parser.add_argument("ports", nargs="+", help="one or two receive-only serial ports")
     parser.add_argument(
@@ -144,13 +158,23 @@ def main():
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true",
-        help="print each valid frame as it is found in the results",
+        help="print frame or protocol samples in the results",
+    )
+    parser.add_argument(
+        "--protocol", choices=("tuya", "a5", "raw"), default="tuya",
+        help="protocol inspection mode (default: tuya)",
+    )
+    parser.add_argument(
+        "--raw-dir", type=Path,
+        help="save each capture as a raw .bin file in this directory",
     )
     args = parser.parse_args()
     if args.duration <= 0:
         parser.error("--duration must be positive")
     if len(args.ports) > 2:
         parser.error("use at most two serial ports")
+    if args.raw_dir:
+        args.raw_dir.mkdir(parents=True, exist_ok=True)
 
     baudrates = args.baudrates or (ALL_BAUDRATES if args.all else DEFAULT_BAUDRATES)
     framings = args.framings or (ALL_FRAMINGS if args.all_framings else DEFAULT_FRAMINGS)
@@ -163,20 +187,45 @@ def main():
             except serial.SerialException as exc:
                 parser.error(str(exc))
             for port, data in captured.items():
-                frames = tuya_frames(data)
-                result = (len(frames), len(data), baudrate, framing, port, frames)
+                if args.raw_dir:
+                    filename = f"{port}_{baudrate}_{framing}.bin".replace(":", "_")
+                    (args.raw_dir / filename).write_bytes(data)
+
+                if args.protocol == "tuya":
+                    findings = tuya_frames(data)
+                    score = len(findings)
+                    label = "valid frame(s)"
+                elif args.protocol == "a5":
+                    findings = a5_candidates(data)
+                    score = len(findings)
+                    label = "A5 candidate(s)"
+                else:
+                    findings = []
+                    score = len(data)
+                    label = "byte(s)"
+
+                result = (score, len(data), baudrate, framing, port, findings)
                 results.append(result)
-                print(f"  {port}: {len(frames)} valid frame(s), {len(data)} byte(s)")
+                print(f"  {port}: {score} {label}, {len(data)} byte(s)")
                 if args.verbose:
-                    for frame in frames:
-                        print(f"    {frame_summary(frame)}")
+                    if args.protocol == "tuya":
+                        for frame in findings:
+                            print(f"    {frame_summary(frame)}")
+                    elif args.protocol == "a5":
+                        for offset, sample in findings[:10]:
+                            print(f"    offset={offset}: {sample.hex(' ')}")
 
     print("\nBest candidates:")
     ranked = sorted(results, key=lambda result: (result[0], result[1]), reverse=True)
     for frame_count, byte_count, baudrate, framing, port, _ in ranked[:5]:
-        print(f"  {port}: {baudrate} {framing} ({frame_count} valid frame(s), {byte_count} byte(s))")
+        print(f"  {port}: {baudrate} {framing} ({frame_count} score, {byte_count} byte(s))")
     if not ranked or ranked[0][0] == 0:
-        print("No checksum-valid Tuya frames found. Capture across a power cycle or extend --duration.")
+        if args.protocol == "tuya":
+            print("No checksum-valid Tuya frames found. Capture across a power cycle or extend --duration.")
+        elif args.protocol == "a5":
+            print("No A5 candidates found. Capture across a power cycle or extend --duration.")
+        else:
+            print("No bytes captured. Check wiring, grounds, and port assignments.")
 
 
 if __name__ == "__main__":

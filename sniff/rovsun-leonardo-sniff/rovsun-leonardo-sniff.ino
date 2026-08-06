@@ -7,7 +7,8 @@
  *   board TX1 / D1        -> disconnected
  *   board 5V              -> disconnected
  *
- * USB logging uses Serial; the captured UART uses Serial1.
+ * USB logging uses Serial; the captured UART uses Serial1. USB emits the
+ * captured bytes unchanged so a host-side tool can parse the stream.
  */
 
 const unsigned long UART_BAUD = 115200;
@@ -20,26 +21,11 @@ void setup() {
   }
 
   Serial1.begin(UART_BAUD);
-  Serial.println("Rovsun Leonardo receive-only logger");
-  Serial.println("UART: Serial1 RX=D0, 115200 8N1; TX=D1 unused");
 }
 
 void loop() {
-  static unsigned long lastByte = 0;
-  static bool haveBytes = false;
-
   while (Serial1.available()) {
-    if (!haveBytes || millis() - lastByte > 20) {
-      if (haveBytes) Serial.println();
-      Serial.print(millis());
-      Serial.print(" ms: ");
-      haveBytes = true;
-    }
-
     uint8_t value = (uint8_t)Serial1.read();
-    if (value < 0x10) Serial.print('0');
-    Serial.print(value, HEX);
-    Serial.print(' ');
-    lastByte = millis();
+    Serial.write(value);
   }
 }
