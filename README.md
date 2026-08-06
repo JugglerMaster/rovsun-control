@@ -197,6 +197,13 @@ The final power transition identified register `0x0001`: the on report starts
 with `00 01 01`, while the off report is `00 01 00 00 38 00`. The first value
 byte therefore maps power on to `0x01` and off to `0x00`.
 
+Direction analysis separates commands from reports. Setting commands appear on
+the module-to-main stream as `A5 ... 21` frames with an `0A 0A` body prefix;
+the main-board-to-module stream returns `A5 ... 21` state reports with the
+usual `0C 0C` prefix. The short `0x23` frames are request/metadata activity,
+not the setting command itself. Do not connect a TX path until this command
+direction and the complete frame response behavior are validated.
+
 Fan captures provisionally identify register `0x0005` as a fan-control field.
 The mute to low-wind capture produced `00 05 02 00 73 00`, while the reverse
 low-wind to mute capture produced `00 05 01 00 73 00`. This confirms distinct
