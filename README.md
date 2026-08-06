@@ -301,6 +301,51 @@ directions. Separate `A5 01 00 21`/`A5 01 00 23` frames appeared around 46.7
 seconds. This is consistent with periodic status/keep-alive traffic, but more
 idle captures are needed before treating 29 seconds as a fixed interval.
 
+### Control-flow reference from GREE research
+
+The [GREE HVAC protocol research](https://github.com/bekmansurov/gree-hvac-protocol)
+documents a useful control-flow model, even though it describes different
+hardware and protocol framing. The GREE module sends commands or status
+requests, the indoor unit applies the request and returns a status response,
+and the module periodically polls so changes made by the IR remote, front-panel
+buttons, or another controller are eventually observed.
+
+Use the same behavior as the working Rovsun controller model:
+
+1. Send a control request.
+2. Treat the immediate beep or physical response as evidence that the unit
+   received the request, not as confirmed application state.
+3. Wait for the subsequent `A5` state report before updating the published
+   state.
+4. Continue periodic status or keep-alive handling so external changes are
+   reconciled.
+
+This matches the current timing observation: the Rovsun beeps nearly
+immediately, begins applying the setting, and the app updates its displayed
+state approximately one second later. The GREE baud rate, `7E 7E` framing,
+packet fields, timing intervals, and checksum must not be reused for Rovsun;
+only the separation between command delivery, confirmed state, and polling is
+being used as a design reference.
+
+### Startup behavior to capture
+
+The [GREE wired-protocol startup discussion](https://github.com/maxim-smirnov/gree-wired-proto/issues/1)
+is a reminder to capture startup separately from normal operation. That issue
+does not provide usable startup logs, but the same investigation is needed for
+Rovsun. Begin recording both UART directions before powering the unit, then
+look for:
+
+- boot or handshake frames before normal state traffic;
+- the first complete state report after power-on;
+- whether `A5 01 01 21` and `A5 01 01 23` begin immediately or only after a request;
+- which direction initiates the exchange and which direction reports state;
+- whether the approximately 29-second traffic is a heartbeat, status poll, or both;
+- whether commands work before the periodic exchange is established.
+
+Save the startup capture with timestamps and do not inject traffic during this
+investigation. These observations will define the replacement controller's
+initialization and polling sequence.
+
 The expected Tuya setting is `8N1`, which is the default. If the wiring is
 correct but no valid frames are found, test framing variants explicitly:
 
