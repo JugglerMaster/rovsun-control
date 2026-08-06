@@ -65,6 +65,11 @@ def word_value(body, key):
     return int.from_bytes(body[offset + 2:offset + 6], "big")
 
 
+def bounded_word_value(body, key, minimum, maximum):
+    value = word_value(body, key)
+    return value if value is not None and minimum <= value <= maximum else None
+
+
 def field_text(name, value, labels=None):
     if value is None:
         return None
@@ -87,10 +92,14 @@ def decode(path):
         sequence = frame[4] if frame[5] == 0 else frame[5]
         fields = [f"offset={offset}", f"seq=0x{sequence:02X}"]
 
-        temp_c = word_value(body, 0x0002)
+        power = bounded_field(body, 0x0001, 1)
+        if power is not None:
+            fields.append(f"power={power}")
+
+        temp_c = bounded_word_value(body, 0x0002, 1000, 4000)
         if temp_c is not None:
             fields.append(f"target_c={temp_c / 100:.2f}")
-        temp_f = word_value(body, 0x0227)
+        temp_f = bounded_word_value(body, 0x0227, 40, 100)
         if temp_f is not None:
             fields.append(f"target_f={temp_f}")
 
