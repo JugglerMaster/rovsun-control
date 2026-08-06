@@ -248,6 +248,26 @@ committing the full axis table. The down-fix to up-down-flow capture produced
 up fix `0x09`, above fix `0x0A`, middle fix `0x0B`, above-down fix `0x0C`, and
 down fix `0x0D`.
 
+The first left-right airflow transition (`left-right flow` to `left flow`)
+produced `00 0E 02`, making register `0x000E` the left-right direction
+candidate with `0x02` likely representing left flow. The remaining left-right
+values still need controlled captures. The left-flow to middle-flow transition
+produced `00 0E 03`, identifying `0x03` as the middle-flow candidate.
+The middle-flow to right-flow transition produced `00 0E 04`, identifying
+`0x04` as the right-flow candidate. The right-flow to left-fix transition
+produced `00 0E 09`, identifying `0x09` as the left-fix candidate on the
+left-right register.
+The left-fix to a-bit-left-fix transition produced `00 0E 0A`, identifying
+`0x0A` as the a-bit-left-fix candidate on the left-right register.
+The a-bit-left-fix to middle-fix transition produced `00 0E 0B`, identifying
+`0x0B` as the middle-fix candidate on the left-right register.
+The middle-fix to a-bit-right-fix transition produced `00 0E 0C`, identifying
+`0x0C` as the a-bit-right-fix candidate on the left-right register.
+The a-bit-right-fix to left-right-flow transition produced `00 0E 0D`,
+completing the observed left-right table: left flow `0x02`, middle flow `0x03`,
+right flow `0x04`, left fix `0x09`, a bit left fix `0x0A`, middle fix `0x0B`,
+a bit right fix `0x0C`, and left-right flow `0x0D`.
+
 Generator mode is a three-level setting rather than a boolean. The initial
 capture identified register `0x002D` with LV1 as `0x01`; the LV1 to LV2 capture
 produced `00 2D 02`, and the LV2 to LV3 capture produced `00 2D 03`. The
