@@ -168,12 +168,12 @@ temperature transition before using it for control. The reverse `75 F -> 74 F`
 capture produced `0x0002 = 00 00 09 2E` (2350, plausibly 23.5 C) and
 `0x0227 = 00 00 00 4A` (74), confirming both fields.
 
-Fan captures provisionally identify register `0x0005` as a fan-control field:
-the earlier low-wind report included `00 05 07 00 73 00`, while the latest
-low-wind to mute transition produced `00 05 01 00 73 00`. The values `0x07`
-(low wind) and `0x01` (mute candidate) need confirmation against the other six
-named options; do not collapse the app's labels into generic low/medium/high
-values.
+Fan captures provisionally identify register `0x0005` as a fan-control field.
+The mute to low-wind capture produced `00 05 02 00 73 00`, while the reverse
+low-wind to mute capture produced `00 05 01 00 73 00`. This confirms distinct
+codes `0x01` (mute candidate) and `0x02` (low wind). An earlier `0x07` sample
+was misattributed to low wind and remains unidentified. Do not collapse the
+app's labels into generic low/medium/high values.
 
 The app exposes additional controls that should be mapped independently:
 sleep, eco, timer, fan mute, airflow direction, beep, light, generator mode,
