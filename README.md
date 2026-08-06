@@ -164,14 +164,16 @@ A saved `74 F -> 75 F` capture isolated two likely target-temperature fields in
 the `0x21` report: register `0x0002` contained `00 00 09 60` (2400, plausibly
 24.0 C in tenths) and register `0x0227` contained `00 00 00 4B` (75 decimal,
 likely the displayed Fahrenheit value). Confirm this mapping with the reverse
-temperature transition before using it for control.
+temperature transition before using it for control. The reverse `75 F -> 74 F`
+capture produced `0x0002 = 00 00 09 2E` (2350, plausibly 23.5 C) and
+`0x0227 = 00 00 00 4A` (74), confirming both fields.
 
 The app exposes additional controls that should be mapped independently:
 sleep, eco, timer, airflow direction, beep, light, generator mode, drying, and
-electricity monitoring, with potentially more device-specific options. The app
-can change airflow direction, while the IR remote only provides sweep control.
-Keep these distinctions in the capture notes; app-only features may have UART
-datapoints that cannot be reproduced through the remote.
+electricity monitoring, with potentially more device-specific options. Both the
+app and IR remote can set sweep, but only the app provides independent airflow
+direction control. Keep these distinctions in the capture notes; app-only
+features may have UART datapoints that cannot be reproduced through the remote.
 
 An idle dual capture showed matching `A5 01 01 21` and `A5 01 01 23` traffic at
 approximately 9.8 and 38.7 seconds, about 28.9 seconds apart, on the two
