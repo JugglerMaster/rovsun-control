@@ -1,0 +1,6 @@
+# ESPHome local credentials and generated state.
+esphome/secrets.yaml
+esphome/.esphome/
+
+# Local runtime logs; reviewed UART captures are intentionally not ignored.
+*.log

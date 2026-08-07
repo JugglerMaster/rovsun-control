@@ -394,6 +394,31 @@ Save the startup capture with timestamps and do not inject traffic during this
 investigation. These observations will define the replacement controller's
 initialization and polling sequence.
 
+Treat each breaker cycle as a fresh baseline during testing. The mini-split is
+expected to return to factory-default settings after power is removed, and the
+Rovsun UART module may also restart from its defaults. Capture startup traffic
+before sending commands, verify the reported initial state, and do not reuse
+sequence or state assumptions from an earlier power cycle.
+
+Test IR-originated changes separately. Change power, mode, temperature, fan,
+and airflow with the IR remote while capturing both UART directions, then
+verify whether the main board reports those changes to the replacement
+controller. If it does, ESPHome can update its state from the UART report. If
+it does not, the main board may allow IR commands to override the UART-facing
+state without notification. Replacing or modifying the IR receiver is a
+possible later hardware solution, but it is not part of the initial controller
+design. The remote appears to retain a complete configuration: pressing its
+power button can apply the remote's stored mode, temperature, fan, and other
+settings rather than changing power alone. Record the remote's display before
+each test and treat a power-button capture as a full-state replay, not an
+isolated power datapoint. If the UART reports the replayed state, Home
+Assistant could restore the preferred values with an automation, but that may
+introduce a visible delay or command race. A hardware solution that intercepts
+or gates the IR receiver could prevent the override more deterministically,
+though it may sacrifice the original remote unless a controllable bypass is
+added. Choose between these only after measuring the actual IR-to-UART timing
+and reporting behavior.
+
 The expected Tuya setting is `8N1`, which is the default. If the wiring is
 correct but no valid frames are found, test framing variants explicitly:
 
