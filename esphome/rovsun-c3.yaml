@@ -65,14 +65,6 @@ uart:
 # these same entities from the mini-split's reports.
 switch:
   - platform: template
-    name: "Power"
-    id: power_switch
-    optimistic: true
-    on_turn_on:
-      - lambda: 'id(rovsun).control_power(true);'
-    on_turn_off:
-      - lambda: 'id(rovsun).control_power(false);'
-  - platform: template
     name: "Beep"
     id: beep_switch
     optimistic: true
@@ -80,88 +72,97 @@ switch:
       - lambda: 'id(rovsun).control_beep(true);'
     on_turn_off:
       - lambda: 'id(rovsun).control_beep(false);'
+  - platform: template
+    name: "Light"
+    id: light_switch
+    optimistic: true
+    on_turn_on:
+      - lambda: 'id(rovsun).control_light(true);'
+    on_turn_off:
+      - lambda: 'id(rovsun).control_light(false);'
+  - platform: template
+    name: "Drying"
+    id: drying_switch
+    optimistic: true
+    on_turn_on:
+      - lambda: 'id(rovsun).control_drying(true);'
+    on_turn_off:
+      - lambda: 'id(rovsun).control_drying(false);'
+  - platform: template
+    name: "Eco"
+    id: eco_switch
+    optimistic: true
+    on_turn_on:
+      - lambda: 'id(rovsun).control_eco(true);'
+    on_turn_off:
+      - lambda: 'id(rovsun).control_eco(false);'
 
 select:
   - platform: template
-    name: "Fan Mode"
-    id: fan_select
+    name: "Sleep Mode"
+    id: sleep_select
     options:
-      - auto
-      - mute
-      - low_wind
-      - mid_low_wind
-      - mid_wind
-      - mid_high_wind
-      - high_wind
-      - strong_wind
+      - off
+      - standard
+      - aged
+      - child
     set_action:
       - lambda: |
             uint8_t v = 0;
-            if (x == "mute") v = 1;
-            else if (x == "low_wind") v = 2;
-            else if (x == "mid_low_wind") v = 3;
-            else if (x == "mid_wind") v = 4;
-            else if (x == "mid_high_wind") v = 5;
-            else if (x == "high_wind") v = 6;
-            else if (x == "strong_wind") v = 7;
-            id(rovsun).control_fan(v);
+            if (x == "standard") v = 1;
+            else if (x == "aged") v = 2;
+            else if (x == "child") v = 3;
+            id(rovsun).control_sleep(v);
   - platform: template
-    name: "Vertical Direction"
-    id: vdir_select
+    name: "Generator Mode"
+    id: generator_select
     options:
-      - flow
-      - up
-      - down
-      - up_fix
-      - above_fix
-      - middle_fix
-      - above_down_fix
-      - down_fix
+      - lv1
+      - lv2
+      - lv3
     set_action:
       - lambda: |
             uint8_t v = 1;
-            if (x == "up") v = 2;
-            else if (x == "down") v = 3;
-            else if (x == "up_fix") v = 9;
-            else if (x == "above_fix") v = 0x0A;
-            else if (x == "middle_fix") v = 0x0B;
-            else if (x == "above_down_fix") v = 0x0C;
-            else if (x == "down_fix") v = 0x0D;
-            id(rovsun).control_vdir(v);
+            if (x == "lv2") v = 2;
+            else if (x == "lv3") v = 3;
+            id(rovsun).control_generator(v);
   - platform: template
-    name: "Mode"
-    id: mode_select
+    name: "Left-Right Direction"
+    id: lrdir_select
     options:
-      - auto
-      - cool
-      - dry
-      - fan_only
-      - heat
+      - left_right_flow
+      - left_flow
+      - middle_flow
+      - right_flow
+      - left_fix
+      - a_bit_left_fix
+      - middle_fix
+      - a_bit_right_fix
     set_action:
       - lambda: |
-            uint8_t v = 0;
-            if (x == "cool") v = 1;
-            else if (x == "dry") v = 2;
-            else if (x == "fan_only") v = 3;
-            else if (x == "heat") v = 4;
-            id(rovsun).control_mode(v);
+            uint8_t v = 0x0D;
+            if (x == "left_flow") v = 2;
+            else if (x == "middle_flow") v = 3;
+            else if (x == "right_flow") v = 4;
+            else if (x == "left_fix") v = 9;
+            else if (x == "a_bit_left_fix") v = 0x0A;
+            else if (x == "middle_fix") v = 0x0B;
+            else if (x == "a_bit_right_fix") v = 0x0C;
+            id(rovsun).control_lrdir(v);
 
-number:
-  - platform: template
-    name: "Setpoint"
-    id: setpoint_number
-    min_value: 16
-    max_value: 30
-    step: 0.5
-    set_action:
-      - lambda: 'id(rovsun).control_setpoint(x);'
+climate:
+  - platform: rovsun_a5
+    name: "Rovsun Mini-Split"
+    rovsun_a5_id: rovsun
 
 rovsun_a5:
   id: rovsun
   uart_id: ac_uart
-  power: power_switch
   beep: beep_switch
-  fan_mode: fan_select
-  vertical_direction: vdir_select
-  mode: mode_select
-  setpoint: setpoint_number
+  light: light_switch
+  drying: drying_switch
+  eco: eco_switch
+  sleep: sleep_select
+  generator: generator_select
+  left_right_direction: lrdir_select
+  log_raw: false

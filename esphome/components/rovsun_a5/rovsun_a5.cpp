@@ -45,6 +45,37 @@ static const char *mode_str(uint8_t v) {
   }
 }
 
+static const char *sleep_str(uint8_t v) {
+  switch (v) {
+    case 1: return "standard";
+    case 2: return "aged";
+    case 3: return "child";
+    default: return "off";
+  }
+}
+
+static const char *gen_str(uint8_t v) {
+  switch (v) {
+    case 2: return "lv2";
+    case 3: return "lv3";
+    default: return "lv1";
+  }
+}
+
+static const char *lrdir_str(uint8_t v) {
+  switch (v) {
+    case 2: return "left_flow";
+    case 3: return "middle_flow";
+    case 4: return "right_flow";
+    case 9: return "left_fix";
+    case 0x0A: return "a_bit_left_fix";
+    case 0x0B: return "middle_fix";
+    case 0x0C: return "a_bit_right_fix";
+    case 0x0D: return "left_right_flow";
+    default: return "";
+  }
+}
+
 void RovsunA5::setup() { rx_.clear(); }
 
 void RovsunA5::loop() {
@@ -54,6 +85,17 @@ void RovsunA5::loop() {
     rx_.push_back(static_cast<uint8_t>(c));
     this->process_();
   }
+}
+
+void RovsunA5::log_frame_(const char *dir, const uint8_t *data, size_t len) {
+  if (!log_raw_) return;
+  std::string s;
+  char buf[4];
+  for (size_t i = 0; i < len; i++) {
+    snprintf(buf, sizeof(buf), "%02X ", data[i]);
+    s += buf;
+  }
+  ESP_LOGD(TAG, "%s: %s", dir, s.c_str());
 }
 
 void RovsunA5::process_() {
@@ -69,6 +111,7 @@ void RovsunA5::process_() {
       i++;
       continue;
     }
+    this->log_frame_("RX", &rx_[i], len);
     this->parse_frame_(&rx_[i], len);
     rx_.erase(rx_.begin() + i, rx_.begin() + i + len);
     i = 0;  // frame removed from the front; rescan
@@ -128,29 +171,74 @@ void RovsunA5::parse_frame_(const uint8_t *f, size_t len) {
   }
 }
 
+void RovsunA5::update_climate_() {
+  if (climate_ == nullptr) return;
+  climate_->mode = power_on_ ? mode_code_to_climate_(mode_)
+                             : climate::CLIMATE_MODE_OFF;
+  const char *fs = fan_str(fan_);
+  if (fs[0]) climate_->fan_mode = fs;
+  const char *vs = vdir_str(vdir_);
+  if (vs[0]) climate_->swing_mode = vs;
+  climate_->target_temperature = setpoint_ / 100.0f;
+  climate_->publish_state();
+}
+
+climate::ClimateMode RovsunA5::mode_code_to_climate_(uint8_t v) {
+  switch (v) {
+    case 1: return climate::CLIMATE_MODE_COOL;
+    case 2: return climate::CLIMATE_MODE_DRY;
+    case 3: return climate::CLIMATE_MODE_FAN_ONLY;
+    case 4: return climate::CLIMATE_MODE_HEAT;
+    default: return climate::CLIMATE_MODE_AUTO;
+  }
+}
+
 void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
   const char *s;
   switch (reg) {
     case 0x0001:
-      if (power_switch_) power_switch_->publish_state(value != 0);
+      power_on_ = value != 0;
+      update_climate_();
       break;
     case 0x0025:
       if (beep_switch_) beep_switch_->publish_state(value != 0);
       break;
     case 0x0005:
-      s = fan_str(static_cast<uint8_t>(value));
-      if (fan_select_ && s[0]) fan_select_->publish_state(s);
+      fan_ = static_cast<uint8_t>(value);
+      update_climate_();
       break;
     case 0x0011:
-      s = vdir_str(static_cast<uint8_t>(value));
-      if (vdir_select_ && s[0]) vdir_select_->publish_state(s);
+      vdir_ = static_cast<uint8_t>(value);
+      update_climate_();
       break;
     case 0x0012:
-      s = mode_str(static_cast<uint8_t>(value));
-      if (mode_select_ && s[0]) mode_select_->publish_state(s);
+      mode_ = static_cast<uint8_t>(value);
+      update_climate_();
       break;
     case 0x0002:
-      if (setpoint_number_) setpoint_number_->publish_state(value / 100.0f);
+      setpoint_ = value;
+      update_climate_();
+      break;
+    case 0x001E:
+      if (light_switch_) light_switch_->publish_state(value != 0);
+      break;
+    case 0x0027:
+      if (drying_switch_) drying_switch_->publish_state(value != 0);
+      break;
+    case 0x0013:
+      if (eco_switch_) eco_switch_->publish_state(value != 0);
+      break;
+    case 0x0022:
+      s = sleep_str(static_cast<uint8_t>(value));
+      if (sleep_select_ && s[0]) sleep_select_->publish_state(s);
+      break;
+    case 0x002D:
+      s = gen_str(static_cast<uint8_t>(value));
+      if (generator_select_ && s[0]) generator_select_->publish_state(s);
+      break;
+    case 0x000E:
+      s = lrdir_str(static_cast<uint8_t>(value));
+      if (lrdir_select_ && s[0]) lrdir_select_->publish_state(s);
       break;
     default:
       break;
@@ -182,6 +270,7 @@ void RovsunA5::send_register_(uint16_t reg, const std::vector<uint8_t> &value) {
   frame[8] = static_cast<uint8_t>(crc >> 8);
   frame[9] = static_cast<uint8_t>(crc & 0xFF);
 
+  this->log_frame_("TX", frame.data(), frame.size());
   for (size_t i = 0; i < frame.size(); i++) this->write(frame[i]);
   this->flush();
 }
@@ -204,6 +293,18 @@ void RovsunA5::control_setpoint(float celsius) {
                               static_cast<uint8_t>(v),
                           });
 }
+void RovsunA5::control_light(bool on) {
+  send_register_(0x001E, {static_cast<uint8_t>(on ? 0x01 : 0x00)});
+}
+void RovsunA5::control_drying(bool on) {
+  send_register_(0x0027, {static_cast<uint8_t>(on ? 0x01 : 0x00)});
+}
+void RovsunA5::control_eco(bool on) {
+  send_register_(0x0013, {static_cast<uint8_t>(on ? 0x01 : 0x00)});
+}
+void RovsunA5::control_sleep(uint8_t val) { send_register_(0x0022, {val}); }
+void RovsunA5::control_generator(uint8_t val) { send_register_(0x002D, {val}); }
+void RovsunA5::control_lrdir(uint8_t val) { send_register_(0x000E, {val}); }
 
 void RovsunA5::dump_config() {
   ESP_LOGCONFIG(TAG, "Rovsun A5 UART controller");
