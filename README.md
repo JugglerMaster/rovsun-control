@@ -77,7 +77,10 @@ The shifter channels are **crossed**: the controller's TX drives the device's RX
 (down-shift on HV→LV). HV must be powered by 5 V, never tied to 3.3 V.
 
 Flash with `esphome run esphome/rovsun-c3.yaml` (USB-C). Secrets live in
-`esphome/secrets.yaml`.
+`esphome/secrets.yaml`. The `external_components` block points at this GitHub
+repo, so the `rovsun_a5` component is fetched automatically — you only need to
+drop the YAML (and your `secrets.yaml`) into the ESPHome config directory, no
+manual `components/` copy required.
 
 ## Protocol reference
 

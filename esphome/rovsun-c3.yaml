@@ -33,8 +33,10 @@ logger:
 
 external_components:
   - source:
-      type: local
-      path: components
+      type: git
+      url: https://github.com/JugglerMaster/rovsun-control
+      ref: main
+      path: esphome/components
 
 api:
   encryption:
