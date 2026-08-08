@@ -4,3 +4,12 @@ esphome/.esphome/
 
 # Local runtime logs; reviewed UART captures are intentionally not ignored.
 *.log
+
+# Arduino/ESP build artifacts.
+out/
+sniff/**/*.eep
+sniff/**/*.elf
+sniff/**/*.hex
+sniff/**/*.bin
+__pycache__/
+*.pyc

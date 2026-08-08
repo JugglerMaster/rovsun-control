@@ -1,40 +1,40 @@
-# Rovsun / Tuya mini-split control via Seeed XIAO ESP32-C3
+# Rovsun mini-split control via Seeed XIAO ESP32-C3
 #
-# Replaces the RT9720CF (Tuya RTL8720CF) Wi-Fi module and speaks the Tuya
-# MCU serial protocol to the mini-split's main control board.
+# Replaces the stock Tuya Wi-Fi module. The mini-split speaks a CUSTOM `A5`
+# UART protocol (NOT Tuya 55 AA), implemented by the local `rovsun_a5`
+# external component. The XIAO is 3.3 V logic, so it connects to the mini-split
+# through the 3.3 V/5 V level shifter:
 #
-# Pinout (XIAO ESP32-C3):
-#   D7  GPIO20  -> main-MCU RX   (XIAO TX)
-#   D6  GPIO21  -> main-MCU TX   (XIAO RX)
-#   GND         -> board GND
-#   3V3 or 5V   -> board module-power rail (measure first!)
+#   XIAO (3.3 V)  <->  Level shifter (LV)  |  Level shifter (HV)  <->  Mini-split (5 V)
+#   D7  GPIO20 (TX) -> LV-TX in            |  HV-TX out          -> main-board RX (idle pin)
+#   D6  GPIO21 (RX) <- LV-RX out           |  HV-RX in           <- main-board TX (streaming pin)
+#   GND            <-> LV-GND              |  HV-GND             <-> board GND
+#   3V3            -> LV rail              |  HV rail            -> board 5V (NOT XIAO 5V/VCC)
 #
-# The `tuya:` component implements the 0x55 AA framing. You only have to map
-# the datapoints (DPs) you discovered with `tinytuya` in Phase 1.
+# Do NOT connect XIAO 5V/VCC to the shifter HV rail; power the HV side from the
+# mini-split's own 5 V rail. Confirmed working commands (Pro Micro bench test):
+#   power  0x0001, beep 0x0025, fan 0x0005, vertical 0x0011, mode 0x0012,
+#   setpoint 0x0002 (hundredths of deg C).
 #
-# Common mini-split DP layout (VERIFY with your get_status() dump):
-#   1  : power            (bool)
-#   2  : mode             (enum: 0 auto,1 cool,2 dry,3 fan,4 heat)
-#   16 : target temp      (int, often 0.1 deg units or raw C)
-#   17 : current temp     (int, sensor)
-#   18 : fan speed        (enum: 0 auto,1 low,2 mid,3 high)
-#   19 : swing            (bool/enum)
-#   20+ : aux heat / sleep / eco / display (device specific)
-#
-# Flash: esptool or `esphome run rovsun-c3.yaml` (USB-C).
+# Flash: `esphome run rovsun-c3.yaml` (USB-C). Secrets live in esphome/secrets.yaml.
 
 esphome:
   name: rovsun-c3
   friendly_name: Rovsun Mini-Split
 
 esp32:
-  board: esp32-c3-devkitm-1
+  board: seeed_xiao_esp32c3
   framework:
     type: arduino
 
-# XIAO C3 has a native USB CDC serial; enable it so logs work over USB-C.
+# XIAO C3 has native USB; use it for logs instead of the UART pins.
 logger:
-  baud_rate: 0   # use native USB, not the UART pins
+  baud_rate: 0
+
+external_components:
+  - source:
+      type: local
+      path: components
 
 api:
   encryption:
@@ -52,43 +52,116 @@ wifi:
 
 captive_portal:
 
-# UART to the main control MCU. Confirm baud with the sniff sketch first.
 uart:
-  id: tuya_uart
+  id: ac_uart
   tx_pin: GPIO20
   rx_pin: GPIO21
-  baud_rate: 9600      # Tuya MCU default; change if your sniff shows otherwise
+  baud_rate: 115200
   parity: NONE
   stop_bits: 1
 
-tuya:
-  uart_id: tuya_uart
-  # Tuya MCU sends a heartbeat; ESPHome answers automatically.
+# Entities are defined here (so Home Assistant sees friendly controls) and
+# forwarded to the A5 controller. The controller publishes state back onto
+# these same entities from the mini-split's reports.
+switch:
+  - platform: template
+    name: "Power"
+    id: power_switch
+    optimistic: true
+    on_turn_on:
+      - lambda: 'id(rovsun).control_power(true);'
+    on_turn_off:
+      - lambda: 'id(rovsun).control_power(false);'
+  - platform: template
+    name: "Beep"
+    id: beep_switch
+    optimistic: true
+    on_turn_on:
+      - lambda: 'id(rovsun).control_beep(true);'
+    on_turn_off:
+      - lambda: 'id(rovsun).control_beep(false);'
 
-climate:
-  - platform: tuya
-    name: "Mini Split"
-    switch_datapoint: 1
-    target_temperature_datapoint: 16
-    current_temperature_datapoint: 17
-    mode_datapoint: 2
-    mode_state_to_enum:
-      0: auto
-      1: cool
-      2: dry
-      3: fan_only
-      4: heat
-    fan_mode_datapoint: 18
-    fan_mode_state_to_enum:
-      0: auto
-      1: low
-      2: medium
-      3: high
-    # swing_datapoint: 19     # uncomment once confirmed
-    # supports_away: false
+select:
+  - platform: template
+    name: "Fan Mode"
+    id: fan_select
+    options:
+      - auto
+      - mute
+      - low_wind
+      - mid_low_wind
+      - mid_wind
+      - mid_high_wind
+      - high_wind
+      - strong_wind
+    set_action:
+      - lambda: |
+            uint8_t v = 0;
+            if (x == "mute") v = 1;
+            else if (x == "low_wind") v = 2;
+            else if (x == "mid_low_wind") v = 3;
+            else if (x == "mid_wind") v = 4;
+            else if (x == "mid_high_wind") v = 5;
+            else if (x == "high_wind") v = 6;
+            else if (x == "strong_wind") v = 7;
+            id(rovsun).control_fan(v);
+  - platform: template
+    name: "Vertical Direction"
+    id: vdir_select
+    options:
+      - flow
+      - up
+      - down
+      - up_fix
+      - above_fix
+      - middle_fix
+      - above_down_fix
+      - down_fix
+    set_action:
+      - lambda: |
+            uint8_t v = 1;
+            if (x == "up") v = 2;
+            else if (x == "down") v = 3;
+            else if (x == "up_fix") v = 9;
+            else if (x == "above_fix") v = 0x0A;
+            else if (x == "middle_fix") v = 0x0B;
+            else if (x == "above_down_fix") v = 0x0C;
+            else if (x == "down_fix") v = 0x0D;
+            id(rovsun).control_vdir(v);
+  - platform: template
+    name: "Mode"
+    id: mode_select
+    options:
+      - auto
+      - cool
+      - dry
+      - fan_only
+      - heat
+    set_action:
+      - lambda: |
+            uint8_t v = 0;
+            if (x == "cool") v = 1;
+            else if (x == "dry") v = 2;
+            else if (x == "fan_only") v = 3;
+            else if (x == "heat") v = 4;
+            id(rovsun).control_mode(v);
 
-# Optional: expose raw DP values as sensors once you confirm their meaning.
-# sensor:
-#   - platform: tuya
-#     name: "MCU Temp"
-#     datapoint: 17
+number:
+  - platform: template
+    name: "Setpoint"
+    id: setpoint_number
+    min_value: 16
+    max_value: 30
+    step: 0.5
+    set_action:
+      - lambda: 'id(rovsun).control_setpoint(x);'
+
+rovsun_a5:
+  id: rovsun
+  uart_id: ac_uart
+  power: power_switch
+  beep: beep_switch
+  fan_mode: fan_select
+  vertical_direction: vdir_select
+  mode: mode_select
+  setpoint: setpoint_number

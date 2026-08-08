@@ -15,6 +15,17 @@ The exposed module header is labeled `5V TX RX GND`. With the unit powered,
 both `TX` and `RX` measured approximately 5 V at idle. Treat these as 5 V TTL
 signals until proven otherwise; do not connect them directly to XIAO GPIOs.
 
+## Status
+
+Bidirectional control over the 5 V UART is confirmed (2026-08-07). A guarded
+5 V Pro Micro (ATmega32U4) sketch transmits `A5 01 01 21` command frames and
+the main board acknowledges with a `0x23` frame echoing the transmitted
+sequence number, then applies the setting in its `0x21` state report. The beep
+register (`0x0025`) was toggled both on and off successfully, and fan speed
+was set via register `0x0005`. The protocol is therefore a working local
+control path that can replace the stock Wi-Fi module. See the live command test
+below for the wiring and frame structure.
+
 ## Hardware you have
 
 - Several Seeed XIAO ESP32-C3 (native USB-C, Wi-Fi, 3.3 V logic)
@@ -475,6 +486,60 @@ The XIAO can also be used as a passive serial receiver, but the USB-to-TTL
 adapter is simpler for one direction and does not require flashing a sniffer.
 Two receivers are needed for simultaneous two-way capture.
 
+### JST pin map and signal directions
+
+See `docs/wifi-module-hw-analysis.md`. The stock module is a 3.3 V Tuya TCLWBR;
+the breakout up-shifts its TX (transistor pull-down, idle 5 V) and down-shifts
+its RX (resistor divider). Therefore the 4-pin JST toward the main board carries
+**5 V** UART on both signal pins, which is why the CP2102 (3.3 V) could not
+drive it and the 5 V Pro Micro is the correct tool for live TX.
+
+The header is labeled `5V TX RX GND`. By the Tuya pinout (module pin3 = TX,
+pin4 = RX), the header `TX` pin is the module's TX output = the **main-board
+RX** (the line a replacement transmits on), and the header `RX` pin is the
+module's RX input = the **main-board TX** (the line a replacement receives on).
+This matches the Phase 3 table (XIAO TX1 -> main-MCU RX, XIAO RX1 ->
+main-MCU TX).
+
+The stock WiFi breakout internally crosses TX/RX so the 3.3 V module sees the
+correct orientation against the main board. To the replacement controller the
+connection is therefore straight through relative to the main board: controller
+**RX** connects to the main-board **TX** pin (the line that continuously
+streams `A5 01 01 21` frames), and controller **TX** connects to the
+main-board **RX** pin (idle until a command is sent). The streaming pin is the
+receive side; the idle pin is the transmit side.
+
+Definitive direction test with the stock module removed:
+
+- One signal pin continuously streams `A5 01 01 21` / `0x23` frames
+  (main-board TX). Connect the receiver (Pro Micro `RX1/D0`, CP2102 `RX`, or
+  XIAO `RX1`) here.
+- The other signal pin is idle/silent until a command is sent (main-board RX).
+  Connect the transmitter (Pro Micro `TX1/D1` or XIAO `TX1`) here.
+- Never connect the 5 V pin to a 3.3 V device rail.
+
+Earlier TX attempts that produced no response were likely wired to the
+always-streaming main-board TX line instead of the idle main-board RX line;
+correct pin selection is required before any live command test.
+
+### Live command test (Pro Micro 5 V)
+
+A guarded Pro Micro sketch (`sniff/rovsun-promicro-tx/rovsun-promicro-tx.ino`)
+confirmed bidirectional control. Wiring: Pro Micro `TX1/D1` -> main-board RX
+(idle pin), `RX1/D0` -> main-board TX (streaming pin), GND common, no 5V
+connection. Sending the beep-off frame `A5 01 01 21 <seq> 00 00 0F <crc>
+0A 0A 00 25 00` produced:
+
+- a `0x23` ACK frame echoing the transmitted sequence number (e.g. `A5 01 01
+  23 00 70 ... 80 0A`);
+- a `0x21` state report with `0C 0C` body and `00 25 00` (beep off);
+- several `A5 01 00 21 ... 12 12 00 01` frames immediately after the command.
+
+The reverse beep-on frame (`... 0A 0A 00 25 01`) produced the matching `00 25
+01` report. This is the first confirmed end-to-end command: the main board
+receives the command, acknowledges, and applies the setting. Captures are saved
+under `captures/beep-off-test/` and `captures/beep-on-test/`.
+
 ## Phase 3 — replace the RTL8720CF with the XIAO C3
 
 Only proceed after Phase 2 confirms `55 AA` frames and the logic voltage.
@@ -501,6 +566,7 @@ Flash `esphome/rovsun-c3.yaml` over USB-C with `esphome run`.
 
 ### Files
 
+- `docs/wifi-module-hw-analysis.md` — stock module breakout teardown and 5 V/3.3 V level-shift map
 - `esphome/rovsun-c3.yaml` — replacement firmware (ESPHome Tuya MCU bridge)
 - `sniff/rovsun-sniff.ino` — optional XIAO UART sniffer
 - `sniff/rovsun-leonardo-sniff/rovsun-leonardo-sniff.ino` — Arduino Micro/Leonardo raw receive-only second-channel logger

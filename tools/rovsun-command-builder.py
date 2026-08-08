@@ -76,8 +76,7 @@ def main():
         frame[value_start:value_end] = replacement
 
     if args.sequence is not None:
-        frame[4] = 0
-        frame[5] = args.sequence
+        frame[4] = args.sequence
 
     frame[8:10] = crc16_xmodem(frame[:8] + frame[10:]).to_bytes(2, "big")
     result = bytes(frame)
