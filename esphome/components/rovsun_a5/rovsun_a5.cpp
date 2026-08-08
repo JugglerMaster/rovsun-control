@@ -1,4 +1,5 @@
 #include "rovsun_a5.h"
+#include "rovsun_climate.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -176,9 +177,7 @@ void RovsunA5::update_climate_() {
   climate_->mode = power_on_ ? mode_code_to_climate_(mode_)
                              : climate::CLIMATE_MODE_OFF;
   const char *fs = fan_str(fan_);
-  if (fs[0]) climate_->fan_mode = fs;
-  const char *vs = vdir_str(vdir_);
-  if (vs[0]) climate_->swing_mode = vs;
+  if (fs[0]) climate_->set_reported_fan_mode(fs);
   climate_->target_temperature = setpoint_ / 100.0f;
   climate_->publish_state();
 }
@@ -232,6 +231,8 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       break;
     case 0x0011:
       vdir_ = static_cast<uint8_t>(value);
+      s = vdir_str(vdir_);
+      if (vdir_select_ && s[0]) vdir_select_->publish_state(s);
       update_climate_();
       break;
     case 0x0012:

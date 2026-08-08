@@ -6,7 +6,6 @@
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/switch/switch.h"
 #include "esphome/components/select/select.h"
-#include "esphome/components/number/number.h"
 #include "esphome/components/climate/climate.h"
 
 namespace esphome {
@@ -28,6 +27,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void set_sleep_select(select::Select *s) { sleep_select_ = s; }
   void set_generator_select(select::Select *s) { generator_select_ = s; }
   void set_lrdir_select(select::Select *s) { lrdir_select_ = s; }
+  void set_vdir_select(select::Select *s) { vdir_select_ = s; }
   void set_log_raw(bool b) { log_raw_ = b; }
   void set_restore_on_power_on(bool b) { restore_on_power_on_ = b; }
 
@@ -63,6 +63,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   select::Select *sleep_select_{nullptr};
   select::Select *generator_select_{nullptr};
   select::Select *lrdir_select_{nullptr};
+  select::Select *vdir_select_{nullptr};
   RovsunClimate *climate_{nullptr};
 
   bool log_raw_{false};

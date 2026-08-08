@@ -14,6 +14,7 @@ CONF_ECO = "eco"
 CONF_SLEEP = "sleep"
 CONF_GENERATOR = "generator"
 CONF_LRDIR = "left_right_direction"
+CONF_VDIR = "vertical_direction"
 CONF_LOG_RAW = "log_raw"
 CONF_RESTORE = "restore_on_power_on"
 CONF_ROVSUN_A5_ID = "rovsun_a5_id"
@@ -33,6 +34,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_SLEEP): cv.use_id(select.Select),
         cv.Optional(CONF_GENERATOR): cv.use_id(select.Select),
         cv.Optional(CONF_LRDIR): cv.use_id(select.Select),
+    cv.Optional(CONF_VDIR): cv.use_id(select.Select),
         cv.Optional(CONF_LOG_RAW, default=False): cv.boolean,
         cv.Optional(CONF_RESTORE, default=True): cv.boolean,
     }
@@ -80,3 +82,6 @@ async def to_code(config):
     if CONF_LRDIR in config:
         p = await cg.get_variable(config[CONF_LRDIR])
         cg.add(var.set_lrdir_select(p))
+    if CONF_VDIR in config:
+        p = await cg.get_variable(config[CONF_VDIR])
+        cg.add(var.set_vdir_select(p))

@@ -37,45 +37,28 @@ static uint8_t fan_to_code(const std::string &s) {
   return 0;  // auto
 }
 
-static uint8_t vdir_to_code(const std::string &s) {
-  if (s == "up") return 2;
-  if (s == "down") return 3;
-  if (s == "up_fix") return 9;
-  if (s == "above_fix") return 0x0A;
-  if (s == "middle_fix") return 0x0B;
-  if (s == "above_down_fix") return 0x0C;
-  if (s == "down_fix") return 0x0D;
-  return 1;  // flow
+RovsunClimate::RovsunClimate() {
+  this->target_temperature = 22.0f;
+  this->set_supported_custom_fan_modes({
+      "auto", "mute", "low_wind", "mid_low_wind", "mid_wind",
+      "mid_high_wind", "high_wind", "strong_wind",
+  });
 }
 
-void RovsunClimate::setup() {
-  // Sane defaults until the first 0x21 report arrives from the main board.
-  this->target_temperature = 22;
-  this->mode = climate::CLIMATE_MODE_OFF;
-  this->fan_mode = "auto";
-  this->swing_mode = "flow";
-  this->publish_state();
+void RovsunClimate::set_reported_fan_mode(const std::string &s) {
+  this->set_custom_fan_mode_(s.c_str());
 }
 
 climate::ClimateTraits RovsunClimate::traits() {
   auto t = climate::ClimateTraits();
-  t.set_supports_current_temperature(false);
-  t.set_supported_modes({
-      climate::CLIMATE_MODE_OFF,
-      climate::CLIMATE_MODE_AUTO,
-      climate::CLIMATE_MODE_COOL,
-      climate::CLIMATE_MODE_DRY,
-      climate::CLIMATE_MODE_FAN_ONLY,
-      climate::CLIMATE_MODE_HEAT,
-  });
-  t.set_supported_fan_modes({
-      "auto", "mute", "low_wind", "mid_low_wind", "mid_wind",
-      "mid_high_wind", "high_wind", "strong_wind",
-  });
-  t.set_supported_swing_modes({
-      "flow", "up", "down", "up_fix", "above_fix", "middle_fix",
-      "above_down_fix", "down_fix",
-  });
+  climate::ClimateModeMask modes;
+  modes.insert(climate::CLIMATE_MODE_OFF);
+  modes.insert(climate::CLIMATE_MODE_AUTO);
+  modes.insert(climate::CLIMATE_MODE_COOL);
+  modes.insert(climate::CLIMATE_MODE_DRY);
+  modes.insert(climate::CLIMATE_MODE_FAN_ONLY);
+  modes.insert(climate::CLIMATE_MODE_HEAT);
+  t.set_supported_modes(modes);
   t.set_visual_min_temperature(16);
   t.set_visual_max_temperature(30);
   t.set_visual_target_temperature_step(0.5);
@@ -85,32 +68,24 @@ climate::ClimateTraits RovsunClimate::traits() {
 void RovsunClimate::control(const climate::ClimateCall &call) {
   if (call.get_mode().has_value()) {
     climate::ClimateMode m = *call.get_mode();
+    this->mode = m;
     if (m == climate::CLIMATE_MODE_OFF) {
-      this->mode = m;
-      this->publish_state();  // optimistic; report will confirm
       parent_->control_power(false);
     } else {
-      this->mode = m;
-      this->publish_state();
       parent_->control_power(true);
       parent_->control_mode(climate_mode_to_code(m));
     }
   }
-  if (call.get_fan_mode().has_value()) {
-    this->fan_mode = *call.get_fan_mode();
-    this->publish_state();
-    parent_->control_fan(fan_to_code(*call.get_fan_mode()));
-  }
-  if (call.get_swing_mode().has_value()) {
-    this->swing_mode = *call.get_swing_mode();
-    this->publish_state();
-    parent_->control_vdir(vdir_to_code(*call.get_swing_mode()));
+  if (call.has_custom_fan_mode()) {
+    std::string fm = call.get_custom_fan_mode().str();
+    this->set_custom_fan_mode_(fm.c_str());
+    parent_->control_fan(fan_to_code(fm));
   }
   if (call.get_target_temperature().has_value()) {
     this->target_temperature = *call.get_target_temperature();
-    this->publish_state();
     parent_->control_setpoint(*call.get_target_temperature());
   }
+  this->publish_state();
 }
 
 }  // namespace rovsun_a5

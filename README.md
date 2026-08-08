@@ -15,9 +15,11 @@ directly, removing the cloud/app dependency.
   acknowledges with a `0x23` frame echoing the sequence number and then applies
   the change in a `0x21` report.
 - **Working ESPHome firmware** (`esphome/rovsun-c3.yaml` + component): a single
-  `climate` entity (power, mode, fan, vertical swing, setpoint) plus switches and
-  selects for the remaining confirmed controls. State is published from the
-  board's `0x21` reports, so IR-remote changes are observed and reconciled.
+  `climate` entity (power, mode, fan, setpoint) plus switches and selects for the
+  remaining confirmed controls. Vertical direction is its own `select` (the
+  `climate` swing slot can't hold the unit's 8 louver positions). State is
+  published from the board's `0x21` reports, so IR-remote changes are observed and
+  reconciled.
 - **Restore-on-power-on**: the controller caches every value commanded through
   ESPHome and replays them when it detects a power **off→on** transition (power
   restored, or the IR remote turning the unit on). This re-asserts HA's desired
@@ -43,14 +45,36 @@ See [Protocol reference](#protocol-reference) for the full confirmed register ma
     connect the board 5 V to a 3.3 V device rail.
 - Use a 3.3 V/5 V level shifter between the XIAO and the 5 V signals.
 
+> **ESPHome version:** built and verified against **ESPHome 2026.7.4**. The
+> `climate` platform uses the current enum + custom-fan-mode API, so a container
+> running a much older build (e.g. 2026.1.x) will fail to compile. Update your
+> ESPHome (or rebuild the add-on/container) before adopting the firmware.
+
+> **Safety: the board side is 5 V.** The XIAO's GPIOs are 3.3 V and will be
+> damaged by a direct 5 V connection. The level shifter is mandatory in the path,
+> and you must confirm the XIAO never sees 5 V on its pins:
+> 1. Build the shifter on a breadboard **with no connection to the mini-split**.
+> 2. Power the shifter's **HV side from a 5 V source** (the board rail, or a bench
+>    5 V supply) and the **LV side from the XIAO's 3.3 V**.
+> 3. With a multimeter / scope, verify the **LV-side** TX and RX pads sit at
+>    ~3.3 V, not 5 V. If you measure 5 V on the LV side, the shifter channels are
+>    crossed or wired backwards — fix before connecting the XIAO.
+> 4. Only after that check, connect the LV side to the XIAO and the HV side to the
+>    mini-split's JST.
+
 ### Wiring (XIAO C3)
 
-| XIAO C3      | Main MCU / module pad |
-|--------------|-----------------------|
-| D7 GPIO20 (TX1) | main-MCU RX (idle pin) |
-| D6 GPIO21 (RX1) | main-MCU TX (streaming pin) |
-| GND          | board GND |
-| 3V3 / 5V     | module-power rail, only after measuring it |
+| XIAO C3 (LV, 3.3 V) | Level shifter | Mini-split (HV, 5 V) |
+|---------------------|---------------|----------------------|
+| D7 GPIO20 (TX1)     | LV-TX → HV-TX | main-MCU RX (idle pin) |
+| D6 GPIO21 (RX1)     | LV-RX → HV-RX | main-MCU TX (streaming pin) |
+| 3V3                 | LV VCCA       | — |
+| 5V (board rail)     | HV VCCB       | board 5 V |
+| GND                 | GND           | board GND |
+
+The shifter channels are **crossed**: the controller's TX drives the device's RX
+(up-shift on the LV→HV direction) and the device's TX drives the controller's RX
+(down-shift on HV→LV). HV must be powered by 5 V, never tied to 3.3 V.
 
 Flash with `esphome run esphome/rovsun-c3.yaml` (USB-C). Secrets live in
 `esphome/secrets.yaml`.
@@ -102,10 +126,10 @@ entities; `esphome/components/rovsun_a5/` contains the implementation
 
 Exposed entities:
 - **climate**: `Rovsun Mini-Split` — modes (off/auto/cool/dry/fan-only/heat),
-  8 fan speeds, 8 vertical swing positions, target 16–30 °C.
+  8 custom fan speeds, target 16–30 °C.
 - **switch**: Beep (`0x0025`), Light (`0x001E`), Drying (`0x0027`), Eco (`0x0013`).
 - **select**: Sleep Mode (`0x0022`), Generator Mode (`0x002D`), Left-Right
-  Direction (`0x000E`).
+  Direction (`0x000E`), Vertical Direction (`0x0011`).
 
 Component options (under `rovsun_a5:`):
 - `restore_on_power_on` (default `true`): replay cached settings on power-on.

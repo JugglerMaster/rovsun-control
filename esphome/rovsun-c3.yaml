@@ -102,7 +102,7 @@ select:
     name: "Sleep Mode"
     id: sleep_select
     options:
-      - off
+      - "off"
       - standard
       - aged
       - child
@@ -149,6 +149,29 @@ select:
             else if (x == "middle_fix") v = 0x0B;
             else if (x == "a_bit_right_fix") v = 0x0C;
             id(rovsun).control_lrdir(v);
+  - platform: template
+    name: "Vertical Direction"
+    id: vdir_select
+    options:
+      - flow
+      - up
+      - down
+      - up_fix
+      - above_fix
+      - middle_fix
+      - above_down_fix
+      - down_fix
+    set_action:
+      - lambda: |
+            uint8_t v = 1;
+            if (x == "up") v = 2;
+            else if (x == "down") v = 3;
+            else if (x == "up_fix") v = 9;
+            else if (x == "above_fix") v = 0x0A;
+            else if (x == "middle_fix") v = 0x0B;
+            else if (x == "above_down_fix") v = 0x0C;
+            else if (x == "down_fix") v = 0x0D;
+            id(rovsun).control_vdir(v);
 
 climate:
   - platform: rovsun_a5
@@ -165,5 +188,6 @@ rovsun_a5:
   sleep: sleep_select
   generator: generator_select
   left_right_direction: lrdir_select
+  vertical_direction: vdir_select
   log_raw: false
   restore_on_power_on: true
