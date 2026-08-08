@@ -166,3 +166,4 @@ rovsun_a5:
   generator: generator_select
   left_right_direction: lrdir_select
   log_raw: false
+  restore_on_power_on: true

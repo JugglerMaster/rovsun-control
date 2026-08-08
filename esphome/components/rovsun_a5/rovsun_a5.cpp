@@ -193,13 +193,36 @@ climate::ClimateMode RovsunA5::mode_code_to_climate_(uint8_t v) {
   }
 }
 
+void RovsunA5::restore_settings_() {
+  if (cmd_fan_ != 0xFF) control_fan(cmd_fan_);
+  if (cmd_vdir_ != 0xFF) control_vdir(cmd_vdir_);
+  if (cmd_mode_ != 0xFF) control_mode(cmd_mode_);
+  if (cmd_setpoint_ != 0) control_setpoint(cmd_setpoint_ / 100.0f);
+  if (cmd_beep_ != 0xFF) control_beep(cmd_beep_);
+  if (cmd_light_ != 0xFF) control_light(cmd_light_);
+  if (cmd_drying_ != 0xFF) control_drying(cmd_drying_);
+  if (cmd_eco_ != 0xFF) control_eco(cmd_eco_);
+  if (cmd_sleep_ != 0xFF) control_sleep(cmd_sleep_);
+  if (cmd_gen_ != 0xFF) control_generator(cmd_gen_);
+  if (cmd_lrdir_ != 0xFF) control_lrdir(cmd_lrdir_);
+}
+
 void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
   const char *s;
   switch (reg) {
-    case 0x0001:
+    case 0x0001: {
+      bool was_on = power_on_;
       power_on_ = value != 0;
+      if (restore_on_power_on_ && power_on_ && (!seen_any_ || !was_on)) {
+        // Replay desired settings on first contact (covers a breaker cycle
+        // that also restarted ESPHome) and on every genuine off->on transition
+        // (power restored, or IR/HA turned the unit on).
+        restore_settings_();
+      }
+      seen_any_ = true;
       update_climate_();
       break;
+    }
     case 0x0025:
       if (beep_switch_) beep_switch_->publish_state(value != 0);
       break;
@@ -279,13 +302,24 @@ void RovsunA5::control_power(bool on) {
   send_register_(0x0001, {static_cast<uint8_t>(on ? 0x01 : 0x00)});
 }
 void RovsunA5::control_beep(bool on) {
-  send_register_(0x0025, {static_cast<uint8_t>(on ? 0x01 : 0x00)});
+  cmd_beep_ = on ? 0x01 : 0x00;
+  send_register_(0x0025, {static_cast<uint8_t>(cmd_beep_)});
 }
-void RovsunA5::control_fan(uint8_t val) { send_register_(0x0005, {val}); }
-void RovsunA5::control_vdir(uint8_t val) { send_register_(0x0011, {val}); }
-void RovsunA5::control_mode(uint8_t val) { send_register_(0x0012, {val}); }
+void RovsunA5::control_fan(uint8_t val) {
+  cmd_fan_ = val;
+  send_register_(0x0005, {val});
+}
+void RovsunA5::control_vdir(uint8_t val) {
+  cmd_vdir_ = val;
+  send_register_(0x0011, {val});
+}
+void RovsunA5::control_mode(uint8_t val) {
+  cmd_mode_ = val;
+  send_register_(0x0012, {val});
+}
 void RovsunA5::control_setpoint(float celsius) {
   uint32_t v = static_cast<uint32_t>(celsius * 100.0f);
+  cmd_setpoint_ = v;
   send_register_(0x0002, {
                               static_cast<uint8_t>(v >> 24),
                               static_cast<uint8_t>(v >> 16),
@@ -294,17 +328,29 @@ void RovsunA5::control_setpoint(float celsius) {
                           });
 }
 void RovsunA5::control_light(bool on) {
-  send_register_(0x001E, {static_cast<uint8_t>(on ? 0x01 : 0x00)});
+  cmd_light_ = on ? 0x01 : 0x00;
+  send_register_(0x001E, {static_cast<uint8_t>(cmd_light_)});
 }
 void RovsunA5::control_drying(bool on) {
-  send_register_(0x0027, {static_cast<uint8_t>(on ? 0x01 : 0x00)});
+  cmd_drying_ = on ? 0x01 : 0x00;
+  send_register_(0x0027, {static_cast<uint8_t>(cmd_drying_)});
 }
 void RovsunA5::control_eco(bool on) {
-  send_register_(0x0013, {static_cast<uint8_t>(on ? 0x01 : 0x00)});
+  cmd_eco_ = on ? 0x01 : 0x00;
+  send_register_(0x0013, {static_cast<uint8_t>(cmd_eco_)});
 }
-void RovsunA5::control_sleep(uint8_t val) { send_register_(0x0022, {val}); }
-void RovsunA5::control_generator(uint8_t val) { send_register_(0x002D, {val}); }
-void RovsunA5::control_lrdir(uint8_t val) { send_register_(0x000E, {val}); }
+void RovsunA5::control_sleep(uint8_t val) {
+  cmd_sleep_ = val;
+  send_register_(0x0022, {val});
+}
+void RovsunA5::control_generator(uint8_t val) {
+  cmd_gen_ = val;
+  send_register_(0x002D, {val});
+}
+void RovsunA5::control_lrdir(uint8_t val) {
+  cmd_lrdir_ = val;
+  send_register_(0x000E, {val});
+}
 
 void RovsunA5::dump_config() {
   ESP_LOGCONFIG(TAG, "Rovsun A5 UART controller");
