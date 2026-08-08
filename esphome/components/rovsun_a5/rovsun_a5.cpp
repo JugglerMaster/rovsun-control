@@ -182,7 +182,8 @@ void RovsunA5::send_register_(uint16_t reg, const std::vector<uint8_t> &value) {
   frame[8] = static_cast<uint8_t>(crc >> 8);
   frame[9] = static_cast<uint8_t>(crc & 0xFF);
 
-  this->write(frame.data(), frame.size());
+  for (size_t i = 0; i < frame.size(); i++) this->write(frame[i]);
+  this->flush();
 }
 
 void RovsunA5::control_power(bool on) {
@@ -206,7 +207,6 @@ void RovsunA5::control_setpoint(float celsius) {
 
 void RovsunA5::dump_config() {
   ESP_LOGCONFIG(TAG, "Rovsun A5 UART controller");
-  LOG_UART_DEVICE(this);
 }
 
 }  // namespace rovsun_a5
