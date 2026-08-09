@@ -102,14 +102,6 @@ switch:
       - lambda: 'id(rovsun).control_drying(true);'
     on_turn_off:
       - lambda: 'id(rovsun).control_drying(false);'
-  - platform: template
-    name: "Power"
-    id: power_switch
-    optimistic: true
-    on_turn_on:
-      - lambda: 'id(rovsun).control_power(true);'
-    on_turn_off:
-      - lambda: 'id(rovsun).control_power(false);'
 
 select:
   - platform: template
@@ -205,7 +197,6 @@ climate:
 rovsun_a5:
   id: rovsun
   uart_id: ac_uart
-  power: power_switch
   beep: beep_switch
   light: light_switch
   drying: drying_switch

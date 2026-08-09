@@ -174,20 +174,12 @@ void RovsunA5::parse_frame_(const uint8_t *f, size_t len) {
 
 void RovsunA5::update_climate_() {
   if (climate_ == nullptr) return;
-  // Power is a separate switch entity, so the climate mode always reflects the
-  // AC's current mode (never OFF).
-  climate_->mode = mode_code_to_climate_(mode_);
+  // The climate OFF mode is the power state.
+  climate_->mode = power_on_ ? mode_code_to_climate_(mode_)
+                             : climate::CLIMATE_MODE_OFF;
   const char *fs = fan_str(fan_);
   if (fs[0]) climate_->set_reported_fan_mode(fs);
   climate_->target_temperature = setpoint_ / 100.0f;
-  // Air direction -> swing mode. Vertical "flow" (0x0011=1) and horizontal
-  // "flow" (0x000E=0x0D) are the swing states; anything else is parked (OFF).
-  bool vflow = (vdir_ == 1);
-  bool hflow = (lrdir_ == 0x0D);
-  climate_->swing_mode = (vflow && hflow) ? climate::CLIMATE_SWING_BOTH
-                       : vflow           ? climate::CLIMATE_SWING_VERTICAL
-                       : hflow           ? climate::CLIMATE_SWING_HORIZONTAL
-                                         : climate::CLIMATE_SWING_OFF;
   climate_->publish_state();
 }
 
@@ -224,7 +216,6 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
     case 0x0001: {
       bool was_on = power_on_;
       power_on_ = value != 0;
-      if (power_switch_) power_switch_->publish_state(power_on_);
       if (restore_on_power_on_ && power_on_ && (!seen_any_ || !was_on)) {
         // Replay desired settings on first contact (covers a breaker cycle
         // that also restarted ESPHome) and on every genuine off->on transition
@@ -275,8 +266,7 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       if (generator_select_ && s[0]) generator_select_->publish_state(s);
       break;
     case 0x000E:
-      lrdir_ = static_cast<uint8_t>(value);
-      s = lrdir_str(value);
+      s = lrdir_str(static_cast<uint8_t>(value));
       if (lrdir_select_ && s[0]) lrdir_select_->publish_state(s);
       break;
     default:

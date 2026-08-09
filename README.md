@@ -15,8 +15,9 @@ directly, removing the cloud/app dependency.
   acknowledges with a `0x23` frame echoing the sequence number and then applies
   the change in a `0x21` report.
 - **Working ESPHome firmware** (`esphome/rovsun-c3.yaml` + component): a single
-  `climate` entity (power, mode, fan, setpoint, and swing modes for air
-  direction) plus switches and selects for the remaining confirmed controls.
+  `climate` entity (power is the OFF mode; plus mode, fan, setpoint) plus
+  switches and selects for the remaining confirmed controls. Air direction is
+  exposed as two full-list selects (vertical + horizontal), not a swing mode.
   State is published from the board's `0x21` reports, so IR-remote changes are
   observed and reconciled.
 - **Restore-on-power-on**: the controller caches every value commanded through
@@ -161,16 +162,14 @@ entities; `esphome/components/rovsun_a5/` contains the implementation
 (`rovsun_a5.{h,cpp}` controller + `rovsun_climate.{h,cpp}` climate platform).
 
 Exposed entities:
-- **climate**: `Rovsun Mini-Split` — modes (auto/cool/dry/fan-only/heat; power is
-  a separate switch, no OFF in the mode list), 8 custom fan speeds, target
-  16–30 °C, and swing modes (Off / Vertical / Horizontal / Both) for air
-  direction, mapped to the AC's vertical (`0x0011`) and horizontal (`0x000E`)
-  "flow" values.
-- **switch**: Power (`0x0001`), Beep (`0x0025`), Light (`0x001E`), Drying (`0x0027`).
+- **climate**: `Rovsun Mini-Split` — the OFF mode is the power button; other
+  modes are auto/cool/dry/fan-only/heat. 8 custom fan speeds, target 16–30 °C.
+- **switch**: Beep (`0x0025`), Light (`0x001E`), Drying (`0x0027`).
 - **select**: Sleep Mode (`0x0022`), Eco (`0x0013`, off/on), Generator Mode
   (`0x002D`), Left-Right Direction (`0x000E`), Vertical Direction (`0x0011`).
-  These two direction selects give the full 8-position louver parking; the
-  climate swing control is the quick on/off-per-axis alternative.
+  These two direction selects expose the full louver list for each axis —
+  every fixed position **plus** the "flow" (swing) value — so you get a long
+  option list per direction instead of a simplified swing control.
 
 Component options (under `rovsun_a5:`):
 - `restore_on_power_on` (default `true`): replay cached settings on power-on.

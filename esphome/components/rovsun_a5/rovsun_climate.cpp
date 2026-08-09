@@ -52,23 +52,14 @@ void RovsunClimate::set_reported_fan_mode(const std::string &s) {
 climate::ClimateTraits RovsunClimate::traits() {
   auto t = climate::ClimateTraits();
   climate::ClimateModeMask modes;
-  // Power is a separate switch entity (see `power:` in the YAML); the climate
-  // mode list therefore has no OFF entry.
+  // The climate OFF mode is the power button; the rest are operating modes.
+  modes.insert(climate::CLIMATE_MODE_OFF);
   modes.insert(climate::CLIMATE_MODE_AUTO);
   modes.insert(climate::CLIMATE_MODE_COOL);
   modes.insert(climate::CLIMATE_MODE_DRY);
   modes.insert(climate::CLIMATE_MODE_FAN_ONLY);
   modes.insert(climate::CLIMATE_MODE_HEAT);
   t.set_supported_modes(modes);
-  // Air-direction is exposed as swing modes: vertical + horizontal map onto the
-  // AC's "flow" (swing) values for registers 0x0011 / 0x000E. The granular
-  // 8-position selects remain available as separate entities for fixed parking.
-  t.set_supported_swing_modes({
-      climate::CLIMATE_SWING_OFF,
-      climate::CLIMATE_SWING_VERTICAL,
-      climate::CLIMATE_SWING_HORIZONTAL,
-      climate::CLIMATE_SWING_BOTH,
-  });
   t.set_visual_min_temperature(16);
   t.set_visual_max_temperature(30);
   t.set_visual_target_temperature_step(0.5);
@@ -79,35 +70,17 @@ void RovsunClimate::control(const climate::ClimateCall &call) {
   if (call.get_mode().has_value()) {
     climate::ClimateMode m = *call.get_mode();
     this->mode = m;
-    // Selecting a mode implies the unit should be on; power is a separate
-    // switch, so just ensure it's on and apply the mode.
-    parent_->control_power(true);
-    parent_->control_mode(climate_mode_to_code(m));
+    if (m == climate::CLIMATE_MODE_OFF) {
+      parent_->control_power(false);
+    } else {
+      parent_->control_power(true);
+      parent_->control_mode(climate_mode_to_code(m));
+    }
   }
   if (call.has_custom_fan_mode()) {
     std::string fm = call.get_custom_fan_mode().str();
     this->set_custom_fan_mode_(fm.c_str());
     parent_->control_fan(fan_to_code(fm));
-  }
-  if (call.get_swing_mode().has_value()) {
-    climate::ClimateSwingMode sm = *call.get_swing_mode();
-    this->swing_mode = sm;
-    switch (sm) {
-      case climate::CLIMATE_SWING_VERTICAL:
-        parent_->control_vdir(1);  // vertical flow / swing
-        break;
-      case climate::CLIMATE_SWING_HORIZONTAL:
-        parent_->control_lrdir(0x0D);  // horizontal flow / swing
-        break;
-      case climate::CLIMATE_SWING_BOTH:
-        parent_->control_vdir(1);
-        parent_->control_lrdir(0x0D);
-        break;
-      default:  // OFF -> park both louvers at a fixed middle position
-        parent_->control_vdir(0x0B);
-        parent_->control_lrdir(0x0B);
-        break;
-    }
   }
   if (call.get_target_temperature().has_value()) {
     this->target_temperature = *call.get_target_temperature();
