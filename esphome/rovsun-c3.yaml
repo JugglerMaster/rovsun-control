@@ -1,4 +1,4 @@
-# Rovsun mini-split control via Seeed XIAO ESP32-C3
+# Rovsun mini-split control via Seeed XIAO ESP32-C6
 #
 # Replaces the stock Tuya Wi-Fi module. The mini-split speaks a CUSTOM `A5`
 # UART protocol (NOT Tuya 55 AA), implemented by the local `rovsun_a5`
@@ -23,7 +23,7 @@ esphome:
   friendly_name: Rovsun Mini-Split
 
 esp32:
-  board: seeed_xiao_esp32c3
+  board: seeed_xiao_esp32c6
   framework:
     type: arduino
 
