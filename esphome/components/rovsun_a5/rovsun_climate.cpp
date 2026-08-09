@@ -52,7 +52,8 @@ void RovsunClimate::set_reported_fan_mode(const std::string &s) {
 climate::ClimateTraits RovsunClimate::traits() {
   auto t = climate::ClimateTraits();
   climate::ClimateModeMask modes;
-  modes.insert(climate::CLIMATE_MODE_OFF);
+  // Power is a separate switch entity (see `power:` in the YAML); the climate
+  // mode list therefore has no OFF entry.
   modes.insert(climate::CLIMATE_MODE_AUTO);
   modes.insert(climate::CLIMATE_MODE_COOL);
   modes.insert(climate::CLIMATE_MODE_DRY);
@@ -69,12 +70,10 @@ void RovsunClimate::control(const climate::ClimateCall &call) {
   if (call.get_mode().has_value()) {
     climate::ClimateMode m = *call.get_mode();
     this->mode = m;
-    if (m == climate::CLIMATE_MODE_OFF) {
-      parent_->control_power(false);
-    } else {
-      parent_->control_power(true);
-      parent_->control_mode(climate_mode_to_code(m));
-    }
+    // Selecting a mode implies the unit should be on; power is a separate
+    // switch, so just ensure it's on and apply the mode.
+    parent_->control_power(true);
+    parent_->control_mode(climate_mode_to_code(m));
   }
   if (call.has_custom_fan_mode()) {
     std::string fm = call.get_custom_fan_mode().str();

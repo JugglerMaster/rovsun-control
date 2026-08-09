@@ -6,7 +6,7 @@
 # through the 3.3 V/5 V level shifter:
 #
 #   XIAO (3.3 V)  <->  Level shifter (LV)  |  Level shifter (HV)  <->  Mini-split (5 V)
-#   D7  GPIO20 (TX) -> LV-TX in            |  HV-TX out          -> main-board RX (idle pin)
+#   D7  GPIO22 (TX) -> LV-TX in            |  HV-TX out          -> main-board RX (idle pin)
 #   D6  GPIO21 (RX) <- LV-RX out           |  HV-RX in           <- main-board TX (streaming pin)
 #   GND            <-> LV-GND              |  HV-GND             <-> board GND
 #   3V3            -> LV rail              |  HV rail            -> board 5V (NOT XIAO 5V/VCC)
@@ -15,6 +15,18 @@
 # mini-split's own 5 V rail. Confirmed working commands (Pro Micro bench test):
 #   power  0x0001, beep 0x0025, fan 0x0005, vertical 0x0011, mode 0x0012,
 #   setpoint 0x0002 (hundredths of deg C).
+#
+# FINDING THE UART INTERFACE: the "UART interface" for this device is the mini-split
+# main board's 5 V TTL serial on the 4-pin JST (main-board TX continuously streams
+# `A5` frames; its RX is idle until a command is sent). Those 5 V lines must be
+# level-shifted down to the XIAO's 3.3 V before connecting. The exact XIAO GPIOs
+# you wire to depend on which physical pads you soldered AND your board's
+# D-pad->GPIO mapping:
+#   - Seeed XIAO ESP32-C3: D6=GPIO21, D7=GPIO20
+#   - Seeed XIAO ESP32-C6: D6=GPIO21, D7=GPIO22   <-- this config
+# Set `tx_pin`/`rx_pin` (under `uart:` below) to match the pads you actually used.
+# If the board won't talk to the AC, re-check the mapping against your board's
+# pinout and the `uart:` section -- a wrong GPIO is the usual cause.
 #
 # Flash: `esphome run rovsun-c3.yaml` (USB-C). Secrets live in esphome/secrets.yaml.
 
@@ -98,6 +110,14 @@ switch:
       - lambda: 'id(rovsun).control_eco(true);'
     on_turn_off:
       - lambda: 'id(rovsun).control_eco(false);'
+  - platform: template
+    name: "Power"
+    id: power_switch
+    optimistic: true
+    on_turn_on:
+      - lambda: 'id(rovsun).control_power(true);'
+    on_turn_off:
+      - lambda: 'id(rovsun).control_power(false);'
 
 select:
   - platform: template
@@ -183,6 +203,7 @@ climate:
 rovsun_a5:
   id: rovsun
   uart_id: ac_uart
+  power: power_switch
   beep: beep_switch
   light: light_switch
   drying: drying_switch

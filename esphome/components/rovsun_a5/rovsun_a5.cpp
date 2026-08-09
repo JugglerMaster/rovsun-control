@@ -174,8 +174,9 @@ void RovsunA5::parse_frame_(const uint8_t *f, size_t len) {
 
 void RovsunA5::update_climate_() {
   if (climate_ == nullptr) return;
-  climate_->mode = power_on_ ? mode_code_to_climate_(mode_)
-                             : climate::CLIMATE_MODE_OFF;
+  // Power is a separate switch entity, so the climate mode always reflects the
+  // AC's current mode (never OFF).
+  climate_->mode = mode_code_to_climate_(mode_);
   const char *fs = fan_str(fan_);
   if (fs[0]) climate_->set_reported_fan_mode(fs);
   climate_->target_temperature = setpoint_ / 100.0f;
@@ -202,8 +203,11 @@ void RovsunA5::restore_settings_() {
   if (cmd_drying_ != 0xFF) control_drying(cmd_drying_);
   if (cmd_eco_ != 0xFF) control_eco(cmd_eco_);
   if (cmd_sleep_ != 0xFF) control_sleep(cmd_sleep_);
-  if (cmd_gen_ != 0xFF) control_generator(cmd_gen_);
   if (cmd_lrdir_ != 0xFF) control_lrdir(cmd_lrdir_);
+  // NOTE: generator mode is intentionally excluded from the power-on replay.
+  // It has no "off" and defaults to lv1; re-asserting it on every AC power-on
+  // is unwanted. It remains fully controllable from HA and reflects IR-remote
+  // changes via the 0x21 report.
 }
 
 void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
@@ -212,6 +216,7 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
     case 0x0001: {
       bool was_on = power_on_;
       power_on_ = value != 0;
+      if (power_switch_) power_switch_->publish_state(power_on_);
       if (restore_on_power_on_ && power_on_ && (!seen_any_ || !was_on)) {
         // Replay desired settings on first contact (covers a breaker cycle
         // that also restarted ESPHome) and on every genuine off->on transition
@@ -257,6 +262,7 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       if (sleep_select_ && s[0]) sleep_select_->publish_state(s);
       break;
     case 0x002D:
+      gen_state_ = static_cast<uint8_t>(value);
       s = gen_str(static_cast<uint8_t>(value));
       if (generator_select_ && s[0]) generator_select_->publish_state(s);
       break;
@@ -300,6 +306,8 @@ void RovsunA5::send_register_(uint16_t reg, const std::vector<uint8_t> &value) {
 }
 
 void RovsunA5::control_power(bool on) {
+  // Don't spam redundant power commands (each one makes the AC beep).
+  if (on == power_on_) return;
   send_register_(0x0001, {static_cast<uint8_t>(on ? 0x01 : 0x00)});
 }
 void RovsunA5::control_beep(bool on) {
@@ -345,6 +353,10 @@ void RovsunA5::control_sleep(uint8_t val) {
   send_register_(0x0022, {val});
 }
 void RovsunA5::control_generator(uint8_t val) {
+  // Don't re-send the value the AC already reports (e.g. an HA echo of the
+  // current state, or an IR-remote change we already observed).
+  if (val == gen_state_) return;
+  gen_state_ = val;
   cmd_gen_ = val;
   send_register_(0x002D, {val});
 }

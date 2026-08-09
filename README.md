@@ -82,6 +82,40 @@ repo, so the `rovsun_a5` component is fetched automatically — you only need to
 drop the YAML (and your `secrets.yaml`) into the ESPHome config directory, no
 manual `components/` copy required.
 
+### Secrets (`esphome/secrets.yaml`)
+
+Create `esphome/secrets.yaml` next to the config. It must define every `!secret`
+reference used by the YAML:
+
+```yaml
+# 32-byte base64 key for the ESPHome native API encryption.
+api_key: "REPLACE_WITH_GENERATED_KEY"
+wifi_ssid: "YOUR_WIFI_SSID"
+wifi_password: "YOUR_WIFI_PASSWORD"
+ap_password: "YOUR_FALLBACK_AP_PASSWORD"
+```
+
+Generate the `api_key` (a 32-byte base64 value) with either:
+
+```bash
+python3 -c "import os,base64; print(base64.b64encode(os.urandom(32)).decode())"
+# or
+openssl rand -base64 32
+```
+
+The `api:` component is required for two things:
+
+- **Home Assistant API** — copy the same `api_key` into HA when adding the device
+  (Settings → Devices & Services → ESPHome → enter the key).
+- **Network log streaming** — `esphome logs esphome/rovsun-c3.yaml --device <ip>`
+  and the dashboard "Logs" button both need the API. If you see
+  *"Cannot view logs over the network: no 'api:' component is configured"*, the
+  running firmware was built without `api:` (e.g. the key/secret was missing) — add
+  the key above and reflash.
+
+Keep `secrets.yaml` out of version control (it holds credentials). Do **not**
+commit it.
+
 ## Protocol reference
 
 Every frame begins `A5 01 01/00 21 <seq> 00 00 <len> <crc16 hi> <crc16 lo>

@@ -7,6 +7,7 @@ DEPENDENCIES = ["uart"]
 MULTI_CONF = False
 
 CONF_UART = "uart_id"
+CONF_POWER = "power"
 CONF_BEEP = "beep"
 CONF_LIGHT = "light"
 CONF_DRYING = "drying"
@@ -27,6 +28,7 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(RovsunA5),
         cv.Required(CONF_UART): cv.use_id(uart.UARTComponent),
+        cv.Optional(CONF_POWER): cv.use_id(switch.Switch),
         cv.Optional(CONF_BEEP): cv.use_id(switch.Switch),
         cv.Optional(CONF_LIGHT): cv.use_id(switch.Switch),
         cv.Optional(CONF_DRYING): cv.use_id(switch.Switch),
@@ -64,6 +66,9 @@ async def to_code(config):
     if CONF_BEEP in config:
         p = await cg.get_variable(config[CONF_BEEP])
         cg.add(var.set_beep_switch(p))
+    if CONF_POWER in config:
+        p = await cg.get_variable(config[CONF_POWER])
+        cg.add(var.set_power_switch(p))
     if CONF_LIGHT in config:
         p = await cg.get_variable(config[CONF_LIGHT])
         cg.add(var.set_light_switch(p))

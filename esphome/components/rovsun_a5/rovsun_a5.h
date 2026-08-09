@@ -20,6 +20,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void dump_config() override;
 
   void set_climate(RovsunClimate *c) { climate_ = c; }
+  void set_power_switch(switch_::Switch *s) { power_switch_ = s; }
   void set_beep_switch(switch_::Switch *s) { beep_switch_ = s; }
   void set_light_switch(switch_::Switch *s) { light_switch_ = s; }
   void set_drying_switch(switch_::Switch *s) { drying_switch_ = s; }
@@ -56,6 +57,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void log_frame_(const char *dir, const uint8_t *data, size_t len);
   static uint16_t crc16_xmodem_(const uint8_t *data, size_t len);
 
+  switch_::Switch *power_switch_{nullptr};
   switch_::Switch *beep_switch_{nullptr};
   switch_::Switch *light_switch_{nullptr};
   switch_::Switch *drying_switch_{nullptr};
@@ -88,6 +90,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   uint8_t cmd_eco_{0xFF};
   uint8_t cmd_sleep_{0xFF};
   uint8_t cmd_gen_{0xFF};
+  uint8_t gen_state_{0xFF};  // last generator value reported by the AC (0x21)
   uint8_t cmd_lrdir_{0xFF};
 
   std::vector<uint8_t> rx_;
