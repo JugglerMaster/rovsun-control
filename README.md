@@ -151,8 +151,8 @@ Every frame begins `A5 01 01/00 21 <seq> 00 00 <len> <crc16 hi> <crc16 lo>
 Notes:
 - `auto` fan (`0x0005 = 0`) may carry a trailing `0x01` behavior flag in captures;
   the current firmware sends the bare code. Confirm before relying on auto.
-- Eco (`0x0013`) is a confirmed register but is intentionally **not** exposed as
-  an entity; its 79 °F target clamp is applied by the board itself.
+- Eco (`0x0013`) is exposed as an `off`/`on` select; its 79 °F target clamp is
+  applied by the board itself, not in firmware.
 
 ## ESPHome firmware
 
@@ -167,10 +167,10 @@ Exposed entities:
   direction, mapped to the AC's vertical (`0x0011`) and horizontal (`0x000E`)
   "flow" values.
 - **switch**: Power (`0x0001`), Beep (`0x0025`), Light (`0x001E`), Drying (`0x0027`).
-- **select**: Sleep Mode (`0x0022`), Generator Mode (`0x002D`), Left-Right
-  Direction (`0x000E`), Vertical Direction (`0x0011`). These two direction
-  selects give the full 8-position louver parking; the climate swing control is
-  the quick on/off-per-axis alternative.
+- **select**: Sleep Mode (`0x0022`), Eco (`0x0013`, off/on), Generator Mode
+  (`0x002D`), Left-Right Direction (`0x000E`), Vertical Direction (`0x0011`).
+  These two direction selects give the full 8-position louver parking; the
+  climate swing control is the quick on/off-per-axis alternative.
 
 Component options (under `rovsun_a5:`):
 - `restore_on_power_on` (default `true`): replay cached settings on power-on.

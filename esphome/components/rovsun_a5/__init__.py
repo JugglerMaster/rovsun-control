@@ -12,6 +12,7 @@ CONF_BEEP = "beep"
 CONF_LIGHT = "light"
 CONF_DRYING = "drying"
 CONF_SLEEP = "sleep"
+CONF_ECO = "eco"
 CONF_GENERATOR = "generator"
 CONF_LRDIR = "left_right_direction"
 CONF_VDIR = "vertical_direction"
@@ -32,6 +33,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_LIGHT): cv.use_id(switch.Switch),
         cv.Optional(CONF_DRYING): cv.use_id(switch.Switch),
         cv.Optional(CONF_SLEEP): cv.use_id(select.Select),
+        cv.Optional(CONF_ECO): cv.use_id(select.Select),
         cv.Optional(CONF_GENERATOR): cv.use_id(select.Select),
         cv.Optional(CONF_LRDIR): cv.use_id(select.Select),
     cv.Optional(CONF_VDIR): cv.use_id(select.Select),
@@ -76,6 +78,9 @@ async def to_code(config):
     if CONF_SLEEP in config:
         p = await cg.get_variable(config[CONF_SLEEP])
         cg.add(var.set_sleep_select(p))
+    if CONF_ECO in config:
+        p = await cg.get_variable(config[CONF_ECO])
+        cg.add(var.set_eco_select(p))
     if CONF_GENERATOR in config:
         p = await cg.get_variable(config[CONF_GENERATOR])
         cg.add(var.set_generator_select(p))
