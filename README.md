@@ -15,11 +15,10 @@ directly, removing the cloud/app dependency.
   acknowledges with a `0x23` frame echoing the sequence number and then applies
   the change in a `0x21` report.
 - **Working ESPHome firmware** (`esphome/rovsun-c3.yaml` + component): a single
-  `climate` entity (power, mode, fan, setpoint) plus switches and selects for the
-  remaining confirmed controls. Vertical direction is its own `select` (the
-  `climate` swing slot can't hold the unit's 8 louver positions). State is
-  published from the board's `0x21` reports, so IR-remote changes are observed and
-  reconciled.
+  `climate` entity (power, mode, fan, setpoint, and swing modes for air
+  direction) plus switches and selects for the remaining confirmed controls.
+  State is published from the board's `0x21` reports, so IR-remote changes are
+  observed and reconciled.
 - **Restore-on-power-on**: the controller caches every value commanded through
   ESPHome and replays them when it detects a power **off→on** transition (power
   restored, or the IR remote turning the unit on). This re-asserts HA's desired
@@ -152,8 +151,8 @@ Every frame begins `A5 01 01/00 21 <seq> 00 00 <len> <crc16 hi> <crc16 lo>
 Notes:
 - `auto` fan (`0x0005 = 0`) may carry a trailing `0x01` behavior flag in captures;
   the current firmware sends the bare code. Confirm before relying on auto.
-- Eco is exposed as a switch; its 79 °F target clamp is **not** enforced in
-  firmware (the board applies the constraint itself).
+- Eco (`0x0013`) is a confirmed register but is intentionally **not** exposed as
+  an entity; its 79 °F target clamp is applied by the board itself.
 
 ## ESPHome firmware
 
@@ -162,11 +161,16 @@ entities; `esphome/components/rovsun_a5/` contains the implementation
 (`rovsun_a5.{h,cpp}` controller + `rovsun_climate.{h,cpp}` climate platform).
 
 Exposed entities:
-- **climate**: `Rovsun Mini-Split` — modes (off/auto/cool/dry/fan-only/heat),
-  8 custom fan speeds, target 16–30 °C.
-- **switch**: Beep (`0x0025`), Light (`0x001E`), Drying (`0x0027`), Eco (`0x0013`).
+- **climate**: `Rovsun Mini-Split` — modes (auto/cool/dry/fan-only/heat; power is
+  a separate switch, no OFF in the mode list), 8 custom fan speeds, target
+  16–30 °C, and swing modes (Off / Vertical / Horizontal / Both) for air
+  direction, mapped to the AC's vertical (`0x0011`) and horizontal (`0x000E`)
+  "flow" values.
+- **switch**: Power (`0x0001`), Beep (`0x0025`), Light (`0x001E`), Drying (`0x0027`).
 - **select**: Sleep Mode (`0x0022`), Generator Mode (`0x002D`), Left-Right
-  Direction (`0x000E`), Vertical Direction (`0x0011`).
+  Direction (`0x000E`), Vertical Direction (`0x0011`). These two direction
+  selects give the full 8-position louver parking; the climate swing control is
+  the quick on/off-per-axis alternative.
 
 Component options (under `rovsun_a5:`):
 - `restore_on_power_on` (default `true`): replay cached settings on power-on.

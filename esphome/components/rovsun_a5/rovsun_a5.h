@@ -72,6 +72,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   uint8_t mode_{0};
   uint8_t fan_{0};
   uint8_t vdir_{1};
+  uint8_t lrdir_{0};
   uint32_t setpoint_{0};
 
   // Last values commanded through ESPHome, replayed on power-on so the unit
