@@ -47,7 +47,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/JugglerMaster/rovsun-control
-      ref: c3651df3b83329428235364d3ffac2e401277fbd
+      ref: c9f23035ed8cd9629385158f17aec24c89c86859
       path: esphome/components
 
 api:
