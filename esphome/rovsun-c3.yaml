@@ -6,8 +6,8 @@
 # through the 3.3 V/5 V level shifter:
 #
 #   XIAO (3.3 V)  <->  Level shifter (LV)  |  Level shifter (HV)  <->  Mini-split (5 V)
-#   D7  GPIO22 (TX) -> LV-TX in            |  HV-TX out          -> main-board RX (idle pin)
-#   D6  GPIO21 (RX) <- LV-RX out           |  HV-RX in           <- main-board TX (streaming pin)
+#   D7  GPIO17 (TX) -> LV-TX in            |  HV-TX out          -> main-board RX (idle pin)
+#   D6  GPIO16 (RX) <- LV-RX out           |  HV-RX in           <- main-board TX (streaming pin)
 #   GND            <-> LV-GND              |  HV-GND             <-> board GND
 #   3V3            -> LV rail              |  HV rail            -> board 5V (NOT XIAO 5V/VCC)
 #
@@ -23,7 +23,7 @@
 # you wire to depend on which physical pads you soldered AND your board's
 # D-pad->GPIO mapping:
 #   - Seeed XIAO ESP32-C3: D6=GPIO21, D7=GPIO20
-#   - Seeed XIAO ESP32-C6: D6=GPIO21, D7=GPIO22   <-- this config
+#   - Seeed XIAO ESP32-C6: D6=GPIO16, D7=GPIO17   <-- this config (per espressif XIAO C6 variant)
 # Set `tx_pin`/`rx_pin` (under `uart:` below) to match the pads you actually used.
 # If the board won't talk to the AC, re-check the mapping against your board's
 # pinout and the `uart:` section -- a wrong GPIO is the usual cause.
@@ -68,8 +68,8 @@ captive_portal:
 
 uart:
   id: ac_uart
-  tx_pin: GPIO22
-  rx_pin: GPIO21
+  tx_pin: GPIO17
+  rx_pin: GPIO16
   baud_rate: 115200
   parity: NONE
   stop_bits: 1

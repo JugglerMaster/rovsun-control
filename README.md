@@ -3,7 +3,7 @@
 Local control of a Rovsun mini-split that ships with a Realtek **RTL8720CF**
 Wi-Fi module. The module talks to the main control board over a **custom `A5`
 UART protocol** (not the Tuya `55 AA` MCU protocol), running at **115200 8N1**.
-The stock module can be replaced by a Seeed XIAO ESP32-C3 running an ESPHome
+The stock module can be replaced by a Seeed XIAO ESP32-C6 running an ESPHome
 external component (`esphome/components/rovsun_a5`) that speaks this protocol
 directly, removing the cloud/app dependency.
 
@@ -31,7 +31,7 @@ See [Protocol reference](#protocol-reference) for the full confirmed register ma
 
 ## Hardware
 
-- Seeed XIAO ESP32-C3 (native USB-C, Wi-Fi, 3.3 V logic) is the preferred
+- Seeed XIAO ESP32-C6 (native USB-C, Wi-Fi, 3.3 V logic) is the preferred
   replacement. Two mini-splits are available; experiment on one, keep the other
   stock.
 - The 4-pin JST toward the main board carries **5 V** UART on both signal pins
@@ -62,12 +62,12 @@ See [Protocol reference](#protocol-reference) for the full confirmed register ma
 > 4. Only after that check, connect the LV side to the XIAO and the HV side to the
 >    mini-split's JST.
 
-### Wiring (XIAO C3)
+### Wiring (XIAO C6)
 
-| XIAO C3 (LV, 3.3 V) | Level shifter | Mini-split (HV, 5 V) |
+| XIAO C6 (LV, 3.3 V) | Level shifter | Mini-split (HV, 5 V) |
 |---------------------|---------------|----------------------|
-| D7 GPIO20 (TX1)     | LV-TX → HV-TX | main-MCU RX (idle pin) |
-| D6 GPIO21 (RX1)     | LV-RX → HV-RX | main-MCU TX (streaming pin) |
+| D7 GPIO17 (TX1)     | LV-TX → HV-TX | main-MCU RX (idle pin) |
+| D6 GPIO16 (RX1)     | LV-RX → HV-RX | main-MCU TX (streaming pin) |
 | 3V3                 | LV VCCA       | — |
 | 5V (board rail)     | HV VCCB       | board 5 V |
 | GND                 | GND           | board GND |
@@ -216,7 +216,11 @@ files) and `README` history for the decode notes that produced this map.
 - `tools/rovsun-command-builder.py` — offline command template builder with CRC
   recalculation (never opens a port).
 - `sniff/rovsun-promicro-tx/rovsun-promicro-tx.ino` — guarded 5 V Pro Micro
-  sketch that confirmed the first end-to-end command.
+  sketch. It monitors the bus by default (frames + CRC-checked A5 decode to USB
+  so you can watch the XIAO C6's commands in response to Home Assistant) and can
+  still transmit for bench tests. To watch the live ESP32, tap its **D7 (GPIO17,
+  TX)** into the Pro Micro **RX1/D0** with common GND and leave the Pro Micro TX
+  disconnected (two TX sources on the bus cause contention).
 
 ## Safety
 

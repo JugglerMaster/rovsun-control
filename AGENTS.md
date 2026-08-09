@@ -26,3 +26,21 @@ status report, and app polling or push-update delay.
 - Use Git LFS when raw captures are too large for ordinary Git storage.
 - Update the README with confirmed findings, but retain the corresponding raw
   capture so mappings and startup behavior remain reproducible.
+
+## Tooling / Flashing
+
+- **Arduino CLI** is installed on this machine and is used to flash the Pro Micro
+  sniffer sketches (`sniff/rovsun-promicro-tx/rovsun-promicro-tx.ino`). The Pro
+  Micro enumerates as **Arduino Leonardo (ATmega32U4)** on **COM10**; compile and
+  upload with:
+  `arduino-cli compile -b arduino:avr:leonardo -p COM10 --upload <sketch.ino>`
+- The 32U4 bootloader is entered via a **DTR reset** — the uploader (avrdude)
+  toggles DTR/RTS to drop into the bootloader before flashing, so a manual reset
+  is not needed for a normal upload. Host-side reads that want to catch the
+  boot-time banner must also toggle DTR (e.g. `ser.dtr=False; sleep; ser.dtr=True`)
+  because the sketch only prints its `setup()` banner once after a reset.
+- **Python** (used for ESPHome) is at
+  `C:\Users\chris\AppData\Local\Python\pythoncore-3.14-64\python.exe`
+  (not on PATH as `python3`); invoke ESPHome with that full path, e.g.
+  `& "<path>\python.exe" -m esphome ...` or via the bundled `esphome.exe` in
+  `Scripts\`. `pyserial` is available there for ad-hoc serial captures.

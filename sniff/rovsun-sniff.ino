@@ -1,12 +1,12 @@
 /*
  * rovsun-sniff.ino
- * Passive serial sniffer for the Tuya MCU link on a Seeed XIAO ESP32-C3.
+ * Passive serial sniffer for the A5 MCU link on a Seeed XIAO ESP32-C6.
  *
  * Goal: confirm the baud rate and watch the 0x55 AA frames exchanged between
  * the RT9720CF module and the mini-split main board — WITHOUT cutting anything.
  *
  * Wiring (tap, do not disconnect the module):
- *   XIAO D6 (GPIO21, RX1)  ->  the MODULE's TX pad  (this is the main-MCU RX line)
+ *   XIAO D6 (GPIO16, RX1)  ->  the MODULE's TX pad  (this is the main-MCU RX line)
  *   XIAO GND               ->  board GND
  *
  * The module's TX carries commands the module sends TO the main MCU.
@@ -24,9 +24,9 @@
 
 #include <HardwareSerial.h>
 
-#define SNIFF_RX_PIN 21      // XIAO D6
-#define SNIFF_TX_PIN 20      // XIAO D7 (unused for RX-only, left idle)
-HardwareSerial Sniff(1);     // UART1 on the C3
+#define SNIFF_RX_PIN 16      // XIAO D6 (RX)
+#define SNIFF_TX_PIN 17      // XIAO D7 (TX, unused for RX-only, left idle)
+HardwareSerial Sniff(1);     // UART1 on the C6
 
 uint32_t baud = 9600;
 
