@@ -100,6 +100,30 @@ void sendReport(uint16_t reg, uint8_t value) {
   Serial1.flush();
 }
 
+// Send a synthetic WIDE state report (4-byte value), e.g. setpoint 0x0002.
+void sendReportWide(uint16_t reg, uint32_t value) {
+  uint8_t frame[18];   // header(8) + crc(2) + prefix(2) + reg(2) + value(4)
+  frame[0] = 0xA5; frame[1] = 0x01; frame[2] = 0x01; frame[3] = 0x21;
+  frame[4] = commandSequence++; frame[5] = 0x00; frame[6] = 0x00;
+  frame[7] = (uint8_t)sizeof(frame);
+  frame[8] = 0x00; frame[9] = 0x00;
+  frame[10] = 0x0C; frame[11] = 0x0C;
+  frame[12] = (uint8_t)(reg >> 8); frame[13] = (uint8_t)(reg & 0xFF);
+  frame[14] = (uint8_t)(value >> 24); frame[15] = (uint8_t)(value >> 16);
+  frame[16] = (uint8_t)(value >> 8); frame[17] = (uint8_t)value;
+
+  uint8_t crcInput[16];   // header(8) + prefix(2) + reg(2) + value(4)
+  memcpy(crcInput, frame, 8);
+  memcpy(crcInput + 8, frame + 10, 2 + 2 + 4);
+  uint16_t crc = crc16Xmodem(crcInput, sizeof(crcInput));
+  frame[8] = crc >> 8; frame[9] = crc & 0xFF;
+
+  Serial.print("TX(report-wide) ");
+  printHex(frame, sizeof(frame));
+  Serial1.write(frame, sizeof(frame));
+  Serial1.flush();
+}
+
 void sendRegister(uint16_t reg, uint8_t value) {
   uint8_t frame[] = {
       0xA5, 0x01, 0x01, 0x21, commandSequence++, 0x00, 0x00, 0x0F,
@@ -212,6 +236,26 @@ void loop() {
       if (input == "SEND BEEP OFF") sendBeep(0x00);
       else if (input == "SEND BEEP ON") sendBeep(0x01);
       else if (input == "REPORT") sendReport(0x0001, 0x01);
+      else if (input.startsWith("RPT ")) {
+        int sp = input.indexOf(' ', 4);
+        if (sp > 4) {
+          uint16_t reg = (uint16_t)strtol(input.substring(4, sp).c_str(), NULL, 16);
+          uint8_t val = (uint8_t)strtol(input.substring(sp + 1).c_str(), NULL, 16);
+          sendReport(reg, val);
+        } else {
+          Serial.println("Ignored. Use: RPT <regHex> <valHex>");
+        }
+      }
+      else if (input.startsWith("RPTW ")) {
+        int sp = input.indexOf(' ', 5);
+        if (sp > 5) {
+          uint16_t reg = (uint16_t)strtol(input.substring(5, sp).c_str(), NULL, 16);
+          uint32_t val = (uint32_t)strtoul(input.substring(sp + 1).c_str(), NULL, 16);
+          sendReportWide(reg, val);
+        } else {
+          Serial.println("Ignored. Use: RPTW <regHex> <4byteHex>");
+        }
+      }
       else if (input.startsWith("SET ")) {
         int sp = input.indexOf(' ', 4);
         if (sp > 4) {
