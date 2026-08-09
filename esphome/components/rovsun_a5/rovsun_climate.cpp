@@ -38,7 +38,7 @@ static uint8_t fan_to_code(const std::string &s) {
 }
 
 RovsunClimate::RovsunClimate() {
-  this->target_temperature = 22.0f;
+  this->target_temperature = 25.0f;  // 77 F default until the AC reports its setpoint
   this->set_supported_custom_fan_modes({
       "auto", "mute", "low_wind", "mid_low_wind", "mid_wind",
       "mid_high_wind", "high_wind", "strong_wind",

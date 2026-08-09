@@ -201,7 +201,6 @@ void RovsunA5::restore_settings_() {
   if (cmd_beep_ != 0xFF) control_beep(cmd_beep_);
   if (cmd_light_ != 0xFF) control_light(cmd_light_);
   if (cmd_drying_ != 0xFF) control_drying(cmd_drying_);
-  if (cmd_eco_ != 0xFF) control_eco(cmd_eco_);
   if (cmd_sleep_ != 0xFF) control_sleep(cmd_sleep_);
   if (cmd_lrdir_ != 0xFF) control_lrdir(cmd_lrdir_);
   // NOTE: generator mode is intentionally excluded from the power-on replay.
@@ -253,9 +252,6 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       break;
     case 0x0027:
       if (drying_switch_) drying_switch_->publish_state(value != 0);
-      break;
-    case 0x0013:
-      if (eco_switch_) eco_switch_->publish_state(value != 0);
       break;
     case 0x0022:
       s = sleep_str(static_cast<uint8_t>(value));
@@ -343,10 +339,6 @@ void RovsunA5::control_light(bool on) {
 void RovsunA5::control_drying(bool on) {
   cmd_drying_ = on ? 0x01 : 0x00;
   send_register_(0x0027, {static_cast<uint8_t>(cmd_drying_)});
-}
-void RovsunA5::control_eco(bool on) {
-  cmd_eco_ = on ? 0x01 : 0x00;
-  send_register_(0x0013, {static_cast<uint8_t>(cmd_eco_)});
 }
 void RovsunA5::control_sleep(uint8_t val) {
   cmd_sleep_ = val;

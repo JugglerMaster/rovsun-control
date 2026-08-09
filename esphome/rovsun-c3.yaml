@@ -103,14 +103,6 @@ switch:
     on_turn_off:
       - lambda: 'id(rovsun).control_drying(false);'
   - platform: template
-    name: "Eco"
-    id: eco_switch
-    optimistic: true
-    on_turn_on:
-      - lambda: 'id(rovsun).control_eco(true);'
-    on_turn_off:
-      - lambda: 'id(rovsun).control_eco(false);'
-  - platform: template
     name: "Power"
     id: power_switch
     optimistic: true
@@ -207,7 +199,6 @@ rovsun_a5:
   beep: beep_switch
   light: light_switch
   drying: drying_switch
-  eco: eco_switch
   sleep: sleep_select
   generator: generator_select
   left_right_direction: lrdir_select

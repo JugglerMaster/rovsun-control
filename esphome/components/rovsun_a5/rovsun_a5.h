@@ -24,7 +24,6 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void set_beep_switch(switch_::Switch *s) { beep_switch_ = s; }
   void set_light_switch(switch_::Switch *s) { light_switch_ = s; }
   void set_drying_switch(switch_::Switch *s) { drying_switch_ = s; }
-  void set_eco_switch(switch_::Switch *s) { eco_switch_ = s; }
   void set_sleep_select(select::Select *s) { sleep_select_ = s; }
   void set_generator_select(select::Select *s) { generator_select_ = s; }
   void set_lrdir_select(select::Select *s) { lrdir_select_ = s; }
@@ -41,7 +40,6 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void control_setpoint(float celsius);
   void control_light(bool on);
   void control_drying(bool on);
-  void control_eco(bool on);
   void control_sleep(uint8_t val);
   void control_generator(uint8_t val);
   void control_lrdir(uint8_t val);
@@ -61,7 +59,6 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   switch_::Switch *beep_switch_{nullptr};
   switch_::Switch *light_switch_{nullptr};
   switch_::Switch *drying_switch_{nullptr};
-  switch_::Switch *eco_switch_{nullptr};
   select::Select *sleep_select_{nullptr};
   select::Select *generator_select_{nullptr};
   select::Select *lrdir_select_{nullptr};
@@ -87,7 +84,6 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   uint8_t cmd_beep_{0xFF};
   uint8_t cmd_light_{0xFF};
   uint8_t cmd_drying_{0xFF};
-  uint8_t cmd_eco_{0xFF};
   uint8_t cmd_sleep_{0xFF};
   uint8_t cmd_gen_{0xFF};
   uint8_t gen_state_{0xFF};  // last generator value reported by the AC (0x21)
