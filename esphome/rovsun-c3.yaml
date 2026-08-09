@@ -103,16 +103,6 @@ switch:
     on_turn_off:
       - lambda: 'id(rovsun).control_drying(false);'
   - platform: template
-    name: "Eco"
-    id: eco_select
-    options:
-      - "off"
-      - "on"
-    set_action:
-      - lambda: |
-            uint8_t v = (x == "on") ? 1 : 0;
-            id(rovsun).control_eco(v);
-  - platform: template
     name: "Power"
     id: power_switch
     optimistic: true
@@ -122,6 +112,16 @@ switch:
       - lambda: 'id(rovsun).control_power(false);'
 
 select:
+  - platform: template
+    name: "Eco"
+    id: eco_select
+    options:
+      - "off"
+      - "on"
+    set_action:
+      - lambda: |
+            uint8_t v = (x == "on") ? 1 : 0;
+            id(rovsun).control_eco(v);
   - platform: template
     name: "Sleep Mode"
     id: sleep_select
