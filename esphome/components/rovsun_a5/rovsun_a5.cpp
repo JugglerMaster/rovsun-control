@@ -470,6 +470,7 @@ void RovsunA5::send_register_(uint16_t reg, const std::vector<uint8_t> &value) {
 }
 
 void RovsunA5::request_status_() {
+  ESP_LOGD(TAG, "requesting AC status");
   // A 0C 0C "read status" frame: 8-byte header + 2-byte CRC + 2-byte 0C 0C body.
   // Mirrors the controller->AC query seen in the isolated-startup capture, which
   // the unit answers with a full 0C 0C report of every register. No register or

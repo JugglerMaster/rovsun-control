@@ -120,6 +120,13 @@ switch:
     on_turn_off:
       - lambda: 'id(rovsun).set_log_raw(false);'
 
+button:
+  - platform: template
+    name: "Refresh Status"
+    id: refresh_status_button
+    on_press:
+      - lambda: 'id(rovsun).request_status_();'
+
 select:
   - platform: template
     name: "Eco"

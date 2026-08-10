@@ -58,6 +58,9 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void control_eco(uint8_t val);
   void control_generator(uint8_t val);
   void control_lrdir(uint8_t val);
+  // Send a 0C 0C "read status" query to the AC (also fired on boot/poll). Made
+  // public so a template.button in YAML can trigger it on demand.
+  void request_status_();
 
  private:
   void process_();
@@ -67,11 +70,6 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void apply_register_(uint16_t reg, uint32_t value);
    void restore_settings_();
    void send_register_(uint16_t reg, const std::vector<uint8_t> &value);
-   // Ask the AC to report its full current state. The A5 protocol answers a
-   // 0C 0C "read status" frame with a full 0C 0C report (observed in the
-   // isolated-startup capture as the controller->AC query). Unlike a 0A 0A
-   // write, this has no side effects on the unit's settings.
-   void request_status_();
    // Flash-backed persistence of the last commanded settings (see .cpp). Loaded
    // in setup() so restore-on-power-on survives an ESPHome restart.
    void load_preferences_();
