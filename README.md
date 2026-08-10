@@ -29,6 +29,16 @@ directly, removing the cloud/app dependency.
 
 See [Protocol reference](#protocol-reference) for the full confirmed register map.
 
+## Home Assistant dashboard
+
+The firmware exposes the unit as separate `select` / `number` / `switch`
+entities (Mode, Fan, Target Temperature, Eco, Sleep Mode, Generator Mode, the
+two 8-position air-direction selects, plus power/beep/light/drying) rather than a
+single `climate` entity, so a thermostat-style card does not apply. To show all
+controls in one card, group those entities with a built-in `entities` card (no
+HACS) or a `stack-in-card` + Mushroom layout. A ready-to-paste example of both
+is in [`docs/ha-card-example.yaml`](docs/ha-card-example.yaml).
+
 ## Hardware
 
 - Seeed XIAO ESP32-C6 (native USB-C, Wi-Fi, 3.3 V logic) is the preferred
@@ -133,8 +143,10 @@ Every frame begins `A5 01 01/00 21 <seq> 00 00 <len> <crc16 hi> <crc16 lo>
 | Register | Meaning | Values |
 |----------|---------|--------|
 | `0x0001` | Power | `0` off, `1` on |
-| `0x0002` | Setpoint | 4-byte big-endian, hundredths of °C (e.g. `0x00000960` = 24.00 °C) |
+| `0x0002` | Setpoint (target) | 4-byte big-endian, hundredths of °C (e.g. `0x00000960` = 24.00 °C) |
+| `0x0003` | Current / ambient temperature | 4-byte big-endian, hundredths of °C (e.g. `0x0000092C` = 23.48 °C); used by the `Current Temperature` sensor |
 | `0x0005` | Fan | `0` auto, `1` mute, `2` low, `3` mid-low, `4` mid, `5` mid-high, `6` high, `7` strong |
+| `0x000D` | Power / energy report | 4-byte big-endian, **best-effort** (observed `3592`; likely instantaneous W or cumulative Wh — verify against a load capture); exposed as the `Power` sensor |
 | `0x000E` | Left-right direction | `2` left, `3` middle, `4` right, `9` left-fix, `0x0A` a-bit-left, `0x0B` middle-fix, `0x0C` a-bit-right, `0x0D` left-right flow |
 | `0x0011` | Vertical direction | `1` flow, `2` up, `3` down, `9` up-fix, `0x0A` above-fix, `0x0B` middle-fix, `0x0C` above-down-fix, `0x0D` down-fix |
 | `0x0012` | Mode | `0` auto, `1` cool, `2` dry, `3` fan-only, `4` heat |
@@ -144,16 +156,28 @@ Every frame begins `A5 01 01/00 21 <seq> 00 00 <len> <crc16 hi> <crc16 lo>
 | `0x0025` | Beep | `0` off, `1` on |
 | `0x0027` | Drying | `0` off, `1` on |
 | `0x002D` | Generator | `1` LV1, `2` LV2, `3` LV3 |
-| `0x0227` | Displayed °F | 4-byte big-endian (read-only, displayed Fahrenheit) |
+| `0x0227` | Displayed °F | 4-byte big-endian (observed `79` / `74`; the value the unit shows on its panel); exposed as the `Raw 0x0227` diagnostic sensor |
 | `0x00DF` | Eco mirror | mirrors `0x0013` |
-| `0x0039` | Capability/list block | variable-length, seen at startup |
-| `0x0003`, `0x000D`, `0x0060`, `0x0065` | observed, not yet mapped | — |
+| `0x0008` | Capability / list block | variable-length array (**not** a register/value pair); the firmware resyncs past it in the `0x21` secondary report |
+
+**Still-unmapped but observed** (under study): `0x000C`, `0x0015`, `0x0017`,
+`0x0035`, `0x0038`, `0x0055`, `0x005C`, `0x005E`, `0x0072`–`0x0074`, `0x0095`,
+`0x00C9`, `0x0148`. All are exposed as **disabled-by-default diagnostic sensors**
+via the `raw_registers` watcher (see below) so their behaviour can be correlated
+with unit actions. (`0x0060` / `0x0065` were noted earlier but have **not**
+appeared in the current captures.)
 
 Notes:
 - `auto` fan (`0x0005 = 0`) may carry a trailing `0x01` behavior flag in captures;
   the current firmware sends the bare code. Confirm before relying on auto.
 - Eco (`0x0013`) is exposed as an `off`/`on` select; its 79 °F target clamp is
   applied by the board itself, not in firmware.
+- The `0x21` secondary report embeds the `0x0008` capability blob. Because it is
+  variable-length and not register/value pairs, a naive parser desyncs after it
+  (emitting spurious registers such as a bogus `0x0005 = 0`). `parse_frame_()`
+  detects `0x0008` and resyncs to the next known register before continuing.
+- The 4-byte registers are `0x0002`, `0x0003`, `0x000D`, `0x0227`; every other
+  observed register is a single byte.
 
 ## ESPHome firmware
 
@@ -175,6 +199,29 @@ Component options (under `rovsun_a5:`):
 - `restore_on_power_on` (default `true`): replay cached settings on power-on.
 - `log_raw` (default `false`): log every RX/TX frame as hex at DEBUG level for
   later protocol analysis. Enable with a `logger` level of `DEBUG` (or lower).
+- `raw_registers` (optional): reverse-engineering watcher. A list of
+  `{ register: <hex>, id: <sensor_id> }` entries that route **any** AC-reported
+  register to a `sensor` entity, so undocumented bytes can be observed live. The
+  parser treats these registers as known (never desyncs on them), and the value
+  is published on change. Example:
+
+  ```yaml
+  sensor:
+    - platform: template
+      name: "Raw 0x0095"
+      id: raw_0x0095
+      entity_category: diagnostic
+      disabled_by_default: true
+  rovsun_a5:
+    # ...
+    raw_registers:
+      - register: 0x0095
+        id: raw_0x0095
+  ```
+
+  `esphome/rovsun-c3.yaml` already wires all currently-observed-but-unmapped
+  registers this way (disabled by default); enable any of them in HA to start
+  logging its history and correlate it with unit actions.
 
 ### Control-flow model
 
@@ -193,9 +240,12 @@ Component options (under `rovsun_a5:`):
   also restarts during a power loss, the first-contact replay has no cached
   values to send. Saving the caches via ESPHome's `preferences` (wear-leveled
   flash) would make the desired state survive a full power+restart cycle.
-- **Read-only sensors** for the unmapped registers (`0x0003`, `0x000D`,
-  `0x0060`, `0x0065`, displayed °F `0x0227`) once their meaning is confirmed
-  (e.g. ambient temperature, runtime).
+- **Read-only sensors** — mostly done. `0x0003` (ambient temp) drives the
+  `Current Temperature` sensor, `0x000D` drives the `Power` sensor, and `0x0227`
+  plus all other observed registers are available through the `raw_registers`
+  watcher below. The only remaining gap is *confirming the meaning/unit* of the
+  still-unmapped registers (esp. the `0x000D` power unit and the `0x0072`–`0x0074`
+  / `0x0227` family), which needs action-correlated captures.
 - **ACK sequence verification**: match the echoed `0x23` sequence number before
   treating a command as delivered.
 - **Auto-fan flag**: confirm whether `auto` requires the trailing `0x01` flag
