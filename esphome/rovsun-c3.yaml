@@ -6,8 +6,8 @@
 # through the 3.3 V/5 V level shifter:
 #
 #   XIAO (3.3 V)  <->  Level shifter (LV)  |  Level shifter (HV)  <->  Mini-split (5 V)
-#   D7  GPIO17 (TX) -> LV-TX in            |  HV-TX out          -> main-board RX (idle pin)
-#   D6  GPIO16 (RX) <- LV-RX out           |  HV-RX in           <- main-board TX (streaming pin)
+#   D6  GPIO16 (TX) -> LV-TX in            |  HV-TX out          -> main-board RX (idle pin)
+#   D7  GPIO17 (RX) <- LV-RX out           |  HV-RX in           <- main-board TX (streaming pin)
 #   GND            <-> LV-GND              |  HV-GND             <-> board GND
 #   3V3            -> LV rail              |  HV rail            -> board 5V (NOT XIAO 5V/VCC)
 #
@@ -69,8 +69,8 @@ captive_portal:
 
 uart:
   id: ac_uart
-  tx_pin: GPIO17
-  rx_pin: GPIO16
+  tx_pin: GPIO16
+  rx_pin: GPIO17
   baud_rate: 115200
   parity: NONE
   stop_bits: 1
