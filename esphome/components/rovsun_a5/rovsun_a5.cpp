@@ -1,5 +1,4 @@
 #include "rovsun_a5.h"
-#include "rovsun_climate.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -21,6 +20,16 @@ static const char *fan_str(uint8_t v) {
   }
 }
 
+static const char *mode_str(uint8_t v) {
+  switch (v) {
+    case 1: return "cool";
+    case 2: return "dry";
+    case 3: return "fan_only";
+    case 4: return "heat";
+    default: return "auto";
+  }
+}
+
 static const char *vdir_str(uint8_t v) {
   switch (v) {
     case 1: return "flow";
@@ -31,17 +40,6 @@ static const char *vdir_str(uint8_t v) {
     case 0x0B: return "middle_fix";
     case 0x0C: return "above_down_fix";
     case 0x0D: return "down_fix";
-    default: return "";
-  }
-}
-
-static const char *mode_str(uint8_t v) {
-  switch (v) {
-    case 0: return "auto";
-    case 1: return "cool";
-    case 2: return "dry";
-    case 3: return "fan_only";
-    case 4: return "heat";
     default: return "";
   }
 }
@@ -172,27 +170,6 @@ void RovsunA5::parse_frame_(const uint8_t *f, size_t len) {
   }
 }
 
-void RovsunA5::update_climate_() {
-  if (climate_ == nullptr) return;
-  // The climate OFF mode is the power state.
-  climate_->mode = power_on_ ? mode_code_to_climate_(mode_)
-                             : climate::CLIMATE_MODE_OFF;
-  const char *fs = fan_str(fan_);
-  if (fs[0]) climate_->set_reported_fan_mode(fs);
-  climate_->target_temperature = setpoint_ / 100.0f;
-  climate_->publish_state();
-}
-
-climate::ClimateMode RovsunA5::mode_code_to_climate_(uint8_t v) {
-  switch (v) {
-    case 1: return climate::CLIMATE_MODE_COOL;
-    case 2: return climate::CLIMATE_MODE_DRY;
-    case 3: return climate::CLIMATE_MODE_FAN_ONLY;
-    case 4: return climate::CLIMATE_MODE_HEAT;
-    default: return climate::CLIMATE_MODE_AUTO;
-  }
-}
-
 void RovsunA5::restore_settings_() {
   if (cmd_fan_ != 0xFF) control_fan(cmd_fan_);
   if (cmd_vdir_ != 0xFF) control_vdir(cmd_vdir_);
@@ -216,6 +193,7 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
     case 0x0001: {
       bool was_on = power_on_;
       power_on_ = value != 0;
+      if (power_switch_) power_switch_->publish_state(power_on_);
       if (restore_on_power_on_ && power_on_ && (!seen_any_ || !was_on)) {
         // Replay desired settings on first contact (covers a breaker cycle
         // that also restarted ESPHome) and on every genuine off->on transition
@@ -223,29 +201,27 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
         restore_settings_();
       }
       seen_any_ = true;
-      update_climate_();
       break;
     }
     case 0x0025:
       if (beep_switch_) beep_switch_->publish_state(value != 0);
       break;
     case 0x0005:
-      fan_ = static_cast<uint8_t>(value);
-      update_climate_();
+      s = fan_str(static_cast<uint8_t>(value));
+      if (fan_select_ && s[0]) fan_select_->publish_state(s);
       break;
     case 0x0011:
       vdir_ = static_cast<uint8_t>(value);
       s = vdir_str(vdir_);
       if (vdir_select_ && s[0]) vdir_select_->publish_state(s);
-      update_climate_();
       break;
     case 0x0012:
-      mode_ = static_cast<uint8_t>(value);
-      update_climate_();
+      s = mode_str(static_cast<uint8_t>(value));
+      if (mode_select_ && s[0]) mode_select_->publish_state(s);
       break;
     case 0x0002:
       setpoint_ = value;
-      update_climate_();
+      if (setpoint_number_) setpoint_number_->publish_state(setpoint_ / 100.0f);
       break;
     case 0x001E:
       if (light_switch_) light_switch_->publish_state(value != 0);
