@@ -103,6 +103,19 @@ void RovsunA5::setup() {
   // (the AC's rest state, register value 1) so it doesn't show a forced LV.
   if (generator_select_) generator_select_->publish_state("off");
   if (debug_switch_) debug_switch_->publish_state(log_raw_);
+
+  // The AC only emits its full state in response to a command/query, so we must
+  // ask for it. Send a 0C 0C read-status query once the UART/AC have settled,
+  // and keep polling so the dashboard stays fresh and recovers from any missed
+  // report. The read-query has no side effects on the unit's settings.
+  set_timeout("req_status_boot", 1500, [this]() { this->request_status_(); });
+  set_interval("req_status_poll", 30000, [this]() { this->request_status_(); });
+  // For restore users, also replay the last commanded settings. Each write
+  // provokes a full AC report, so this guarantees the entities get populated
+  // even if the read-query above is ignored, and restores desired state.
+  if (restore_on_power_on_) {
+    set_timeout("restore_boot", 2500, [this]() { this->restore_settings_(); });
+  }
 }
 
 static uint32_t rovsun_pref_key_(const char *s) {
@@ -444,6 +457,37 @@ void RovsunA5::send_register_(uint16_t reg, const std::vector<uint8_t> &value) {
   frame[12] = static_cast<uint8_t>(reg >> 8);
   frame[13] = static_cast<uint8_t>(reg & 0xFF);
   for (size_t i = 0; i < value.size(); i++) frame[14 + i] = value[i];
+
+  std::vector<uint8_t> crcbuf(frame.begin(), frame.begin() + 8);
+  crcbuf.insert(crcbuf.end(), frame.begin() + 10, frame.end());
+  uint16_t crc = crc16_xmodem_(crcbuf.data(), crcbuf.size());
+  frame[8] = static_cast<uint8_t>(crc >> 8);
+  frame[9] = static_cast<uint8_t>(crc & 0xFF);
+
+  this->log_frame_("TX", frame.data(), frame.size());
+  for (size_t i = 0; i < frame.size(); i++) this->write(frame[i]);
+  this->flush();
+}
+
+void RovsunA5::request_status_() {
+  // A 0C 0C "read status" frame: 8-byte header + 2-byte CRC + 2-byte 0C 0C body.
+  // Mirrors the controller->AC query seen in the isolated-startup capture, which
+  // the unit answers with a full 0C 0C report of every register. No register or
+  // value is attached, so it never changes the unit's state.
+  size_t total = 12;
+  std::vector<uint8_t> frame(total);
+  frame[0] = 0xA5;
+  frame[1] = 0x01;
+  frame[2] = 0x00;  // host->device direction, as seen on the original module's query
+  frame[3] = 0x21;
+  frame[4] = seq_++;
+  frame[5] = 0x00;
+  frame[6] = 0x00;
+  frame[7] = static_cast<uint8_t>(total);
+  frame[8] = 0x00;  // CRC placeholder
+  frame[9] = 0x00;
+  frame[10] = 0x0C;
+  frame[11] = 0x0C;
 
   std::vector<uint8_t> crcbuf(frame.begin(), frame.begin() + 8);
   crcbuf.insert(crcbuf.end(), frame.begin() + 10, frame.end());
