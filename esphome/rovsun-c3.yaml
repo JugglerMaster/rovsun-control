@@ -280,6 +280,93 @@ sensor:
     # Best-effort: register 0x000D (observed ~3592). Likely instantaneous watts
     # or cumulative Wh; verify against a cooling/heating capture and adjust unit.
 
+  # --- Reverse-engineering watchers ---------------------------------------
+  # These route every other AC-reported register to a sensor so they can be
+  # correlated with unit actions. Disabled by default to keep the dashboard
+  # clean; enable any of them in HA to start logging its history. All values
+  # are the raw register contents (0x0227 is a 4-byte register; the rest are
+  # 1-byte unless noted). Meanings are still unknown (see README).
+  - platform: template
+    name: "Raw 0x000C"
+    id: raw_0x000c
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0015"
+    id: raw_0x0015
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0017"
+    id: raw_0x0017
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0035"
+    id: raw_0x0035
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0038"
+    id: raw_0x0038
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0055"
+    id: raw_0x0055
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x005C"
+    id: raw_0x005c
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x005E"
+    id: raw_0x005e
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0072"
+    id: raw_0x0072
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0073"
+    id: raw_0x0073
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0074"
+    id: raw_0x0074
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0095"
+    id: raw_0x0095
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x00C9"
+    id: raw_0x00c9
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x00DF"
+    id: raw_0x00df
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0148"
+    id: raw_0x0148
+    entity_category: diagnostic
+    disabled_by_default: true
+  - platform: template
+    name: "Raw 0x0227"
+    id: raw_0x0227
+    entity_category: diagnostic
+    disabled_by_default: true
+
 
 rovsun_a5:
   id: rovsun
@@ -301,3 +388,36 @@ rovsun_a5:
   debug: debug_switch
   log_raw: true
   restore_on_power_on: true
+  raw_registers:
+    - register: 0x000C
+      id: raw_0x000c
+    - register: 0x0015
+      id: raw_0x0015
+    - register: 0x0017
+      id: raw_0x0017
+    - register: 0x0035
+      id: raw_0x0035
+    - register: 0x0038
+      id: raw_0x0038
+    - register: 0x0055
+      id: raw_0x0055
+    - register: 0x005C
+      id: raw_0x005c
+    - register: 0x005E
+      id: raw_0x005e
+    - register: 0x0072
+      id: raw_0x0072
+    - register: 0x0073
+      id: raw_0x0073
+    - register: 0x0074
+      id: raw_0x0074
+    - register: 0x0095
+      id: raw_0x0095
+    - register: 0x00C9
+      id: raw_0x00c9
+    - register: 0x00DF
+      id: raw_0x00df
+    - register: 0x0148
+      id: raw_0x0148
+    - register: 0x0227
+      id: raw_0x0227

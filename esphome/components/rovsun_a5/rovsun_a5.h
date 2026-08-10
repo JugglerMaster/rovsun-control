@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <set>
+#include <utility>
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/switch/switch.h"
@@ -34,6 +36,12 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void set_debug_switch(switch_::Switch *s) { debug_switch_ = s; }
   void set_current_temp_sensor(sensor::Sensor *s) { current_temp_sensor_ = s; }
   void set_power_sensor(sensor::Sensor *s) { power_sensor_ = s; }
+  // Reverse-engineering helper: publish any AC-reported register to a sensor.
+  // Registers must come from the known set (see known_reg_); use this to watch
+  // undocumented bytes and correlate their behaviour with unit actions.
+  void add_raw_register(uint16_t reg, sensor::Sensor *s) {
+    raw_registers_.push_back({reg, s});
+  }
   void set_log_raw(bool b) { log_raw_ = b; }
   void set_restore_on_power_on(bool b) { restore_on_power_on_ = b; }
 
@@ -55,6 +63,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void process_();
    void parse_frame_(const uint8_t *frame, size_t len);
    static bool known_reg_(uint16_t reg);
+   bool is_raw_reg_(uint16_t reg) const;
   void apply_register_(uint16_t reg, uint32_t value);
   void restore_settings_();
   void send_register_(uint16_t reg, const std::vector<uint8_t> &value);
@@ -76,6 +85,13 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   switch_::Switch *debug_switch_{nullptr};
   sensor::Sensor *current_temp_sensor_{nullptr};
   sensor::Sensor *power_sensor_{nullptr};
+
+  struct RawReg {
+    uint16_t reg;
+    sensor::Sensor *sensor;
+  };
+  std::vector<RawReg> raw_registers_{};
+  std::map<uint16_t, uint32_t> raw_last_{};  // last published value, for change-based publish
 
   bool log_raw_{false};
   bool restore_on_power_on_{true};

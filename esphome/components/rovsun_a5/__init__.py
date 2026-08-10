@@ -24,6 +24,8 @@ CONF_POWER_SENSOR = "power_sensor"
 CONF_DEBUG = "debug"
 CONF_LOG_RAW = "log_raw"
 CONF_RESTORE = "restore_on_power_on"
+CONF_RAW_REGISTERS = "raw_registers"
+CONF_REGISTER = "register"
 
 rovsun_a5_ns = cg.esphome_ns.namespace("rovsun_a5")
 RovsunA5 = rovsun_a5_ns.class_("RovsunA5", cg.Component, uart.UARTDevice)
@@ -49,6 +51,16 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_DEBUG): cv.use_id(switch.Switch),
         cv.Optional(CONF_LOG_RAW, default=False): cv.boolean,
         cv.Optional(CONF_RESTORE, default=True): cv.boolean,
+        # Reverse-engineering watcher: watch any AC-reported register and route
+        # it to a sensor. Registers must be from the device's known set.
+        cv.Optional(CONF_RAW_REGISTERS): cv.ensure_list(
+            cv.Schema(
+                {
+                    cv.Required(CONF_REGISTER): cv.int_,
+                    cv.Required(CONF_ID): cv.use_id(sensor.Sensor),
+                }
+            )
+        ),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -104,3 +116,7 @@ async def to_code(config):
     if CONF_DEBUG in config:
         p = await cg.get_variable(config[CONF_DEBUG])
         cg.add(var.set_debug_switch(p))
+    if CONF_RAW_REGISTERS in config:
+        for rr in config[CONF_RAW_REGISTERS]:
+            p = await cg.get_variable(rr[CONF_ID])
+            cg.add(var.add_raw_register(rr[CONF_REGISTER], p))

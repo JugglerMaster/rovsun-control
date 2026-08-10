@@ -190,12 +190,12 @@ void RovsunA5::parse_frame_(const uint8_t *f, size_t len) {
       bool synced = false;
       for (size_t j = idx + 3; j + 2 <= body_len; j++) {
         uint16_t r = (static_cast<uint16_t>(body[j]) << 8) | body[j + 1];
-        if (known_reg_(r)) {
+        if (known_reg_(r) || is_raw_reg_(r)) {
           uint16_t r2 = (j + 3 + 2 <= body_len)
                              ? ((static_cast<uint16_t>(body[j + 3]) << 8) |
                                 body[j + 4])
                              : 0xFFFF;
-          if (known_reg_(r2) || (r2 & 0xFF00) == 0) {
+          if (known_reg_(r2) || is_raw_reg_(r2) || (r2 & 0xFF00) == 0) {
             idx = j;
             synced = true;
             break;
@@ -205,7 +205,7 @@ void RovsunA5::parse_frame_(const uint8_t *f, size_t len) {
       if (!synced) break;
       continue;
     }
-    if (!known_reg_(reg)) break;
+    if (!known_reg_(reg) && !is_raw_reg_(reg)) break;
     bool wide = (reg == 0x0002 || reg == 0x0003 || reg == 0x000D ||
                  reg == 0x0227);
     size_t w = wide ? 4 : 1;
@@ -235,6 +235,13 @@ bool RovsunA5::known_reg_(uint16_t reg) {
     default:
       return false;
   }
+}
+
+bool RovsunA5::is_raw_reg_(uint16_t reg) const {
+  for (const auto &r : raw_registers_) {
+    if (r.reg == reg) return true;
+  }
+  return false;
 }
 
 void RovsunA5::restore_settings_() {
@@ -346,6 +353,18 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       break;
     default:
       break;
+  }
+  // Reverse-engineering watcher: publish any register the user wired to a
+  // sensor. Publish on change only, since the AC streams the full state
+  // repeatedly and flooding the recorder with unchanged values is wasteful.
+  for (const auto &r : raw_registers_) {
+    if (r.reg == reg && r.sensor != nullptr) {
+      auto it = raw_last_.find(reg);
+      if (it == raw_last_.end() || it->second != value) {
+        r.sensor->publish_state(static_cast<float>(value));
+        raw_last_[reg] = value;
+      }
+    }
   }
 }
 
