@@ -276,7 +276,7 @@ number:
     step: 0.5
     mode: box
     optimistic: true
-    unit_of_measurement: "°F"
+    unit_of_measurement: "F"
     # Input is degrees Fahrenheit; convert to Celsius for the AC protocol.
     set_action:
       - lambda: 'id(rovsun).control_setpoint((x - 32.0f) * 5.0f / 9.0f);'
@@ -285,7 +285,7 @@ sensor:
   - platform: template
     name: "Current Temperature"
     id: current_temp_sensor
-    unit_of_measurement: "°F"
+    unit_of_measurement: "F"
     device_class: temperature
     state_class: measurement
     # Value is published by the controller from register 0x0003 (hundredths of deg C).

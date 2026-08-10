@@ -36,6 +36,7 @@ static const char *vdir_str(uint8_t v) {
     case 1: return "flow";
     case 2: return "up";
     case 3: return "down";
+    case 8: return "middle_fix";  // default fixed-mid position (app "fixed mid")
     case 9: return "up_fix";
     case 0x0A: return "above_fix";
     case 0x0B: return "middle_fix";
@@ -101,8 +102,7 @@ void RovsunA5::setup() {
   // Restore the last commanded settings from flash so that restore-on-power-on
   // still works after an ESPHome restart (the RAM caches are lost on reboot).
   load_preferences_();
-  // Generator has no real "off" in the protocol; default the select to "off"
-  // (the AC's rest state, register value 1) so it doesn't show a forced LV.
+  // Generator defaults to off (register value 0); default the select to "off".
   if (generator_select_) generator_select_->publish_state("off");
   if (debug_switch_) debug_switch_->publish_state(log_raw_);
 
@@ -319,8 +319,8 @@ void RovsunA5::restore_settings_() {
   if (cmd_eco_ != 0xFF) control_eco(cmd_eco_);
   if (cmd_lrdir_ != 0xFF) control_lrdir(cmd_lrdir_);
   // NOTE: generator mode is intentionally excluded from the power-on replay.
-  // It has no "off" and defaults to lv1; re-asserting it on every AC power-on
-  // is unwanted. It remains fully controllable from HA and reflects IR-remote
+  // It defaults to off (0); re-asserting a level on every AC power-on is
+  // unwanted. It remains fully controllable from HA and reflects IR-remote
   // changes via the 0x21 report.
 }
 

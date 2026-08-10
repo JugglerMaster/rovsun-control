@@ -157,8 +157,8 @@ retained with both directions and timestamp sidecars.
 | `0x0003` | Current / ambient temperature | 4-byte big-endian, hundredths of °C (e.g. `0x0000092C` = 23.48 °C); used by the `Current Temperature` sensor |
 | `0x0005` | Fan | `0` auto, `1` mute, `2` low, `3` mid-low, `4` mid, `5` mid-high, `6` high, `7` strong |
 | `0x000D` | Power / energy report | 4-byte big-endian, **best-effort** (observed `3592`; likely instantaneous W or cumulative Wh — verify against a load capture); exposed as the `Power` sensor |
-| `0x000E` | Left-right direction | `2` left, `3` middle, `4` right, `9` left-fix, `0x0A` a-bit-left, `0x0B` middle-fix, `0x0C` a-bit-right, `0x0D` left-right flow |
-| `0x0011` | Vertical direction | `1` flow, `2` up, `3` down, `9` up-fix, `0x0A` above-fix, `0x0B` middle-fix, `0x0C` above-down-fix, `0x0D` down-fix |
+| `0x000E` | Left-right direction | `2` left, `3` middle, `4` right, `9` left-fix, `0x0A` a-bit-left, `0x0B` middle-fix, `0x0C` a-bit-right, `0x0D` left-right flow (**capture-confirmed**: `0x0D` observed during a bit-right→flow louver move); `right_fix` position not yet mapped |
+| `0x0011` | Vertical direction | `1` flow, `2` up, `3` down, `8` middle-fix (observed default / app "fixed mid"), `9` up-fix, `0x0A` above-fix, `0x0B` middle-fix, `0x0C` above-down-fix, `0x0D` down-fix |
 | `0x0012` | Mode | `0` auto, `1` cool, `2` dry, `3` fan-only, `4` heat |
 | `0x0013` | Eco | `0` off, `1` on (forces target to 79 °F floor) |
 | `0x001E` | Light | `0` off, `1` on |
@@ -220,7 +220,7 @@ manual's feature descriptions and still need a button-press capture to confirm
 | SLEEP | `0x0022` | Confirmed | `0` off, `1` standard, `2` aged, `3` child |
 | BUZZER | `0x0025` | Confirmed | firmware "Beep" |
 | DISPLAY (LED panel on/off) | `0x001E` | Hypothesized | firmware labels it "light"; likely the panel LED, not room lighting |
-| GEN / GENERATOR (long-press MUTE 3 s) | `0x002D` | Confirmed | `1` LV1, `2` LV2, `3` LV3; unit cycles OFF→L3→L2→L1 |
+| GEN / GENERATOR (long-press MUTE 3 s) | `0x002D` | Confirmed | `0` off, `1` LV1, `2` LV2, `3` LV3; default is off |
 | °C/°F display switch (long-press TURBO/FAN) | `0x0227` | Hypothesized | `0x0227` is a 4-byte value observed as `79` (≈ setpoint 78.8 °F); plausibly the panel's displayed °F |
 | 8 °C heating (long-press ECO) | — | Unknown | not yet seen in captures; likely a distinct register/flag |
 | I FEEL (remote temp sensing) | — | Unknown | candidate: one of `0x000C` / `0x0072`–`0x0074` / `0x0095` |
