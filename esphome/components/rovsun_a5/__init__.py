@@ -20,6 +20,7 @@ CONF_FAN = "fan"
 CONF_MODE = "mode"
 CONF_SETPOINT = "setpoint"
 CONF_CURRENT_TEMP = "current_temp"
+CONF_POWER_SENSOR = "power_sensor"
 CONF_DEBUG = "debug"
 CONF_LOG_RAW = "log_raw"
 CONF_RESTORE = "restore_on_power_on"
@@ -44,6 +45,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_MODE): cv.use_id(select.Select),
         cv.Optional(CONF_SETPOINT): cv.use_id(number.Number),
         cv.Optional(CONF_CURRENT_TEMP): cv.use_id(sensor.Sensor),
+        cv.Optional(CONF_POWER_SENSOR): cv.use_id(sensor.Sensor),
         cv.Optional(CONF_DEBUG): cv.use_id(switch.Switch),
         cv.Optional(CONF_LOG_RAW, default=False): cv.boolean,
         cv.Optional(CONF_RESTORE, default=True): cv.boolean,
@@ -96,6 +98,9 @@ async def to_code(config):
     if CONF_CURRENT_TEMP in config:
         p = await cg.get_variable(config[CONF_CURRENT_TEMP])
         cg.add(var.set_current_temp_sensor(p))
+    if CONF_POWER_SENSOR in config:
+        p = await cg.get_variable(config[CONF_POWER_SENSOR])
+        cg.add(var.set_power_sensor(p))
     if CONF_DEBUG in config:
         p = await cg.get_variable(config[CONF_DEBUG])
         cg.add(var.set_debug_switch(p))

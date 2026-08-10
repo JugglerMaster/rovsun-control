@@ -33,6 +33,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void set_fan_select(select::Select *s) { fan_select_ = s; }
   void set_debug_switch(switch_::Switch *s) { debug_switch_ = s; }
   void set_current_temp_sensor(sensor::Sensor *s) { current_temp_sensor_ = s; }
+  void set_power_sensor(sensor::Sensor *s) { power_sensor_ = s; }
   void set_log_raw(bool b) { log_raw_ = b; }
   void set_restore_on_power_on(bool b) { restore_on_power_on_ = b; }
 
@@ -74,6 +75,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   select::Select *fan_select_{nullptr};
   switch_::Switch *debug_switch_{nullptr};
   sensor::Sensor *current_temp_sensor_{nullptr};
+  sensor::Sensor *power_sensor_{nullptr};
 
   bool log_raw_{false};
   bool restore_on_power_on_{true};

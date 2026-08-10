@@ -271,6 +271,15 @@ sensor:
     state_class: measurement
     # Value is published by the controller from register 0x0003 (hundredths of deg C).
 
+  - platform: template
+    name: "Power"
+    id: power_sensor
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    # Best-effort: register 0x000D (observed ~3592). Likely instantaneous watts
+    # or cumulative Wh; verify against a cooling/heating capture and adjust unit.
+
 
 rovsun_a5:
   id: rovsun
@@ -288,6 +297,7 @@ rovsun_a5:
   mode: mode_select
   setpoint: setpoint_number
   current_temp: current_temp_sensor
+  power_sensor: power_sensor
   debug: debug_switch
   log_raw: true
   restore_on_power_on: true
