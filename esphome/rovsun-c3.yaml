@@ -111,6 +111,14 @@ switch:
       - lambda: 'id(rovsun).control_power(true);'
     on_turn_off:
       - lambda: 'id(rovsun).control_power(false);'
+  - platform: template
+    name: "Debug Log"
+    id: debug_switch
+    optimistic: true
+    on_turn_on:
+      - lambda: 'id(rovsun).set_log_raw(true);'
+    on_turn_off:
+      - lambda: 'id(rovsun).set_log_raw(false);'
 
 select:
   - platform: template
@@ -141,12 +149,15 @@ select:
   - platform: template
     name: "Generator Mode"
     id: generator_select
+    optimistic: true
     options:
+      - off
       - lv1
       - lv2
       - lv3
     set_action:
       - lambda: |
+            if (x == "off") return;  // off is a no-op; the AC's rest state
             uint8_t v = 1;
             if (x == "lv2") v = 2;
             else if (x == "lv3") v = 3;
@@ -242,12 +253,14 @@ number:
   - platform: template
     name: "Target Temperature"
     id: setpoint_number
-    min_value: 16
-    max_value: 30
+    min_value: 60
+    max_value: 90
     step: 0.5
     mode: box
+    unit_of_measurement: "°F"
+    # Input is degrees Fahrenheit; convert to Celsius for the AC protocol.
     set_action:
-      - lambda: 'id(rovsun).control_setpoint(x);'
+      - lambda: 'id(rovsun).control_setpoint((x - 32.0f) * 5.0f / 9.0f);'
 
 rovsun_a5:
   id: rovsun
@@ -264,5 +277,6 @@ rovsun_a5:
   fan: fan_select
   mode: mode_select
   setpoint: setpoint_number
-  log_raw: false
+  debug: debug_switch
+  log_raw: true
   restore_on_power_on: true

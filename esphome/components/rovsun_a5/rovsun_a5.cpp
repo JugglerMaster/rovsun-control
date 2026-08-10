@@ -75,7 +75,31 @@ static const char *lrdir_str(uint8_t v) {
   }
 }
 
-void RovsunA5::setup() { rx_.clear(); }
+static const char *reg_str(uint16_t reg) {
+  switch (reg) {
+    case 0x0001: return "power";
+    case 0x0002: return "setpoint";
+    case 0x0005: return "fan";
+    case 0x000E: return "left_right_dir";
+    case 0x0011: return "vertical_dir";
+    case 0x0012: return "mode";
+    case 0x0013: return "eco";
+    case 0x001E: return "light";
+    case 0x0022: return "sleep";
+    case 0x0025: return "beep";
+    case 0x0027: return "drying";
+    case 0x002D: return "generator";
+    default: return "?";
+  }
+}
+
+void RovsunA5::setup() {
+  rx_.clear();
+  // Generator has no real "off" in the protocol; default the select to "off"
+  // (the AC's rest state, register value 1) so it doesn't show a forced LV.
+  if (generator_select_) generator_select_->publish_state("off");
+  if (debug_switch_) debug_switch_->publish_state(log_raw_);
+}
 
 void RovsunA5::loop() {
   while (this->available()) {
@@ -189,6 +213,19 @@ void RovsunA5::restore_settings_() {
 
 void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
   const char *s;
+  // Debug echo: log each register only when its value actually changes (the
+  // AC streams the full state repeatedly, so logging every frame would flood).
+  if (log_raw_) {
+    auto it = last_reported_.find(reg);
+    if (it == last_reported_.end() || it->second != value) {
+      if (reg == 0x0002)
+        ESP_LOGD(TAG, "AC report: %s (0x%04X) = %u (%.2f C)", reg_str(reg), reg,
+                 value, value / 100.0f);
+      else
+        ESP_LOGD(TAG, "AC report: %s (0x%04X) = %u", reg_str(reg), reg, value);
+      last_reported_[reg] = value;
+    }
+  }
   switch (reg) {
     case 0x0001: {
       bool was_on = power_on_;
@@ -221,7 +258,10 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       break;
     case 0x0002:
       setpoint_ = value;
-      if (setpoint_number_) setpoint_number_->publish_state(setpoint_ / 100.0f);
+      // Reported setpoint is in hundredths of deg C; publish as deg F to match
+      // the Fahrenheit range of the `setpoint_number` entity.
+      if (setpoint_number_)
+        setpoint_number_->publish_state(setpoint_ / 100.0f * 9.0f / 5.0f + 32.0f);
       break;
     case 0x001E:
       if (light_switch_) light_switch_->publish_state(value != 0);
@@ -238,8 +278,12 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       break;
     case 0x002D:
       gen_state_ = static_cast<uint8_t>(value);
-      s = gen_str(static_cast<uint8_t>(value));
-      if (generator_select_ && s[0]) generator_select_->publish_state(s);
+      // Value 1 is the AC's rest state, which we surface as the "off" option;
+      // don't echo it back (see setup()) so the "off" default persists.
+      if (value != 1) {
+        s = gen_str(static_cast<uint8_t>(value));
+        if (generator_select_ && s[0]) generator_select_->publish_state(s);
+      }
       break;
     case 0x000E:
       s = lrdir_str(static_cast<uint8_t>(value));
@@ -281,61 +325,89 @@ void RovsunA5::send_register_(uint16_t reg, const std::vector<uint8_t> &value) {
 }
 
 void RovsunA5::control_power(bool on) {
-  // Don't spam redundant power commands (each one makes the AC beep).
-  if (on == power_on_) return;
-  send_register_(0x0001, {static_cast<uint8_t>(on ? 0x01 : 0x00)});
+  // Don't spam redundant power commands (each one makes the AC beep). Guard
+  // against the last *commanded* state, not the reported `power_on_`: if the
+  // AC's power report is stale or missing, guarding on `power_on_` would block
+  // the OFF command while still allowing ON (asymmetric / broken).
+  uint8_t v = on ? 0x01 : 0x00;
+  if (v == cmd_power_) {
+    if (log_raw_) ESP_LOGD(TAG, "control power: ignored, already %s", on ? "on" : "off");
+    return;
+  }
+  if (log_raw_) ESP_LOGD(TAG, "control power: %s", on ? "on" : "off");
+  cmd_power_ = v;
+  send_register_(0x0001, {v});
 }
 void RovsunA5::control_beep(bool on) {
+  if (log_raw_) ESP_LOGD(TAG, "control beep: %s", on ? "on" : "off");
   cmd_beep_ = on ? 0x01 : 0x00;
   send_register_(0x0025, {static_cast<uint8_t>(cmd_beep_)});
 }
 void RovsunA5::control_fan(uint8_t val) {
+  const char *fs = fan_str(val);
+  if (log_raw_) ESP_LOGD(TAG, "control fan: %s (%u)", fs[0] ? fs : "?", val);
   cmd_fan_ = val;
   send_register_(0x0005, {val});
 }
 void RovsunA5::control_vdir(uint8_t val) {
+  const char *vs = vdir_str(val);
+  if (log_raw_) ESP_LOGD(TAG, "control vertical_dir: %s (%u)", vs[0] ? vs : "?", val);
   cmd_vdir_ = val;
   send_register_(0x0011, {val});
 }
 void RovsunA5::control_mode(uint8_t val) {
+  const char *ms = mode_str(val);
+  if (log_raw_) ESP_LOGD(TAG, "control mode: %s (%u)", ms[0] ? ms : "?", val);
   cmd_mode_ = val;
   send_register_(0x0012, {val});
 }
 void RovsunA5::control_setpoint(float celsius) {
   uint32_t v = static_cast<uint32_t>(celsius * 100.0f);
+  if (log_raw_) ESP_LOGD(TAG, "control setpoint: %.2f C", celsius);
   cmd_setpoint_ = v;
   send_register_(0x0002, {
-                              static_cast<uint8_t>(v >> 24),
-                              static_cast<uint8_t>(v >> 16),
-                              static_cast<uint8_t>(v >> 8),
-                              static_cast<uint8_t>(v),
-                          });
+                               static_cast<uint8_t>(v >> 24),
+                               static_cast<uint8_t>(v >> 16),
+                               static_cast<uint8_t>(v >> 8),
+                               static_cast<uint8_t>(v),
+                           });
 }
 void RovsunA5::control_light(bool on) {
+  if (log_raw_) ESP_LOGD(TAG, "control light: %s", on ? "on" : "off");
   cmd_light_ = on ? 0x01 : 0x00;
   send_register_(0x001E, {static_cast<uint8_t>(cmd_light_)});
 }
 void RovsunA5::control_drying(bool on) {
+  if (log_raw_) ESP_LOGD(TAG, "control drying: %s", on ? "on" : "off");
   cmd_drying_ = on ? 0x01 : 0x00;
   send_register_(0x0027, {static_cast<uint8_t>(cmd_drying_)});
 }
 void RovsunA5::control_sleep(uint8_t val) {
+  const char *ss = sleep_str(val);
+  if (log_raw_) ESP_LOGD(TAG, "control sleep: %s (%u)", ss[0] ? ss : "?", val);
   cmd_sleep_ = val;
   send_register_(0x0022, {val});
 }
 void RovsunA5::control_eco(uint8_t val) {
+  if (log_raw_) ESP_LOGD(TAG, "control eco: %s", val ? "on" : "off");
   cmd_eco_ = val;
   send_register_(0x0013, {val});
 }
 void RovsunA5::control_generator(uint8_t val) {
   // Don't re-send the value the AC already reports (e.g. an HA echo of the
   // current state, or an IR-remote change we already observed).
-  if (val == gen_state_) return;
+  if (val == gen_state_) {
+    if (log_raw_) ESP_LOGD(TAG, "control generator: ignored, AC already at %u", val);
+    return;
+  }
+  if (log_raw_) ESP_LOGD(TAG, "control generator: %u", val);
   gen_state_ = val;
   cmd_gen_ = val;
   send_register_(0x002D, {val});
 }
 void RovsunA5::control_lrdir(uint8_t val) {
+  const char *ls = lrdir_str(val);
+  if (log_raw_) ESP_LOGD(TAG, "control left_right_dir: %s (%u)", ls[0] ? ls : "?", val);
   cmd_lrdir_ = val;
   send_register_(0x000E, {val});
 }

@@ -19,6 +19,7 @@ CONF_VDIR = "vertical_direction"
 CONF_FAN = "fan"
 CONF_MODE = "mode"
 CONF_SETPOINT = "setpoint"
+CONF_DEBUG = "debug"
 CONF_LOG_RAW = "log_raw"
 CONF_RESTORE = "restore_on_power_on"
 
@@ -41,6 +42,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_FAN): cv.use_id(select.Select),
         cv.Optional(CONF_MODE): cv.use_id(select.Select),
         cv.Optional(CONF_SETPOINT): cv.use_id(number.Number),
+        cv.Optional(CONF_DEBUG): cv.use_id(switch.Switch),
         cv.Optional(CONF_LOG_RAW, default=False): cv.boolean,
         cv.Optional(CONF_RESTORE, default=True): cv.boolean,
     }
@@ -89,3 +91,6 @@ async def to_code(config):
     if CONF_SETPOINT in config:
         p = await cg.get_variable(config[CONF_SETPOINT])
         cg.add(var.set_setpoint_number(p))
+    if CONF_DEBUG in config:
+        p = await cg.get_variable(config[CONF_DEBUG])
+        cg.add(var.set_debug_switch(p))

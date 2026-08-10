@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <map>
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/switch/switch.h"
@@ -29,6 +30,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void set_mode_select(select::Select *s) { mode_select_ = s; }
   void set_setpoint_number(number::Number *n) { setpoint_number_ = n; }
   void set_fan_select(select::Select *s) { fan_select_ = s; }
+  void set_debug_switch(switch_::Switch *s) { debug_switch_ = s; }
   void set_log_raw(bool b) { log_raw_ = b; }
   void set_restore_on_power_on(bool b) { restore_on_power_on_ = b; }
 
@@ -67,11 +69,13 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   select::Select *mode_select_{nullptr};
   number::Number *setpoint_number_{nullptr};
   select::Select *fan_select_{nullptr};
+  switch_::Switch *debug_switch_{nullptr};
 
   bool log_raw_{false};
   bool restore_on_power_on_{true};
   bool power_on_{false};
   bool seen_any_{false};
+  uint8_t cmd_power_{0xFF};  // last *commanded* power value (0xFF = never); guards redundant sends
   uint8_t vdir_{1};
   uint32_t setpoint_{0};  // last target setpoint reported by the AC (0x0002), in hundredths of deg C
 
@@ -93,6 +97,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
 
   std::vector<uint8_t> rx_;
   uint8_t seq_ = 0x70;
+  std::map<uint16_t, uint32_t> last_reported_{};  // last value per register, for change-based debug logging
 };
 
 }  // namespace rovsun_a5
