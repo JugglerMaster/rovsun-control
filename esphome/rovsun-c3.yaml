@@ -257,6 +257,7 @@ number:
     max_value: 90
     step: 0.5
     mode: box
+    optimistic: true
     unit_of_measurement: "°F"
     # Input is degrees Fahrenheit; convert to Celsius for the AC protocol.
     set_action:

@@ -360,16 +360,21 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       if (mode_select_ && s[0]) mode_select_->publish_state(s);
       break;
     case 0x0002:
-      setpoint_ = value;
       // Reported setpoint is in hundredths of deg C; publish as deg F to match
-      // the Fahrenheit range of the `setpoint_number` entity.
-      if (setpoint_number_)
-        setpoint_number_->publish_state(setpoint_ / 100.0f * 9.0f / 5.0f + 32.0f);
+      // the Fahrenheit range of the `setpoint_number` entity. The AC sends 0 as
+      // a null/placeholder (it never targets 0 C); ignore it so we don't publish
+      // 32 F, which Home Assistant would clamp to the entity's min_value (60).
+      if (value != 0) {
+        setpoint_ = value;
+        if (setpoint_number_)
+          setpoint_number_->publish_state(setpoint_ / 100.0f * 9.0f / 5.0f + 32.0f);
+      }
       break;
     case 0x0003:
       // Current/measured room temperature, hundredths of deg C. Publish in deg F
-      // to match the user's Fahrenheit preference.
-      if (current_temp_sensor_)
+      // to match the user's Fahrenheit preference. As with 0x0002, 0 is a null
+      // placeholder from the AC; skip it.
+      if (value != 0 && current_temp_sensor_)
         current_temp_sensor_->publish_state(value / 100.0f * 9.0f / 5.0f + 32.0f);
       break;
     case 0x000D:
