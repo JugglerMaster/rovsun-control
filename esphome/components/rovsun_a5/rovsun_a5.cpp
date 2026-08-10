@@ -181,6 +181,11 @@ void RovsunA5::parse_frame_(const uint8_t *f, size_t len) {
   // Registers observed with 4-byte values (big-endian). All others are 1 byte.
   while (idx + 2 <= body_len) {
     uint16_t reg = (static_cast<uint16_t>(body[idx]) << 8) | body[idx + 1];
+    // The secondary/capabilities report contains a variable-length "blob"
+    // register (0x0008) that is not a simple value. Once we hit a register we
+    // don't recognize, stop: trying to parse past it desyncs the stream and
+    // produces spurious registers (e.g. a bogus 0x0005=0) that clobber entities.
+    if (!known_reg_(reg)) break;
     bool wide = (reg == 0x0002 || reg == 0x0003 || reg == 0x000D ||
                  reg == 0x0227);
     size_t w = wide ? 4 : 1;
@@ -191,6 +196,23 @@ void RovsunA5::parse_frame_(const uint8_t *f, size_t len) {
     }
     this->apply_register_(reg, value);
     idx += 2 + w;
+  }
+}
+
+// Registers this device actually reports as simple values. Anything else (such
+// as the 0x0008 capabilities blob) is not parseable as a register/value pair,
+// so we stop the frame there to avoid desync.
+bool RovsunA5::known_reg_(uint16_t reg) {
+  switch (reg) {
+    case 0x0001: case 0x0002: case 0x0003: case 0x0005: case 0x000C:
+    case 0x000D: case 0x000E: case 0x0011: case 0x0012: case 0x0013:
+    case 0x0017: case 0x001E: case 0x0022: case 0x0025: case 0x0027:
+    case 0x002D: case 0x0035: case 0x0038: case 0x0055: case 0x005C:
+    case 0x005E: case 0x0072: case 0x0073: case 0x0074: case 0x0095:
+    case 0x00C9: case 0x00DF: case 0x0148: case 0x0227:
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -262,6 +284,12 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       // the Fahrenheit range of the `setpoint_number` entity.
       if (setpoint_number_)
         setpoint_number_->publish_state(setpoint_ / 100.0f * 9.0f / 5.0f + 32.0f);
+      break;
+    case 0x0003:
+      // Current/measured room temperature, hundredths of deg C. Publish in deg F
+      // to match the user's Fahrenheit preference.
+      if (current_temp_sensor_)
+        current_temp_sensor_->publish_state(value / 100.0f * 9.0f / 5.0f + 32.0f);
       break;
     case 0x001E:
       if (light_switch_) light_switch_->publish_state(value != 0);

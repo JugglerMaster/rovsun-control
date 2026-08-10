@@ -8,6 +8,7 @@
 #include "esphome/components/switch/switch.h"
 #include "esphome/components/select/select.h"
 #include "esphome/components/number/number.h"
+#include "esphome/components/sensor/sensor.h"
 
 namespace esphome {
 namespace rovsun_a5 {
@@ -31,6 +32,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void set_setpoint_number(number::Number *n) { setpoint_number_ = n; }
   void set_fan_select(select::Select *s) { fan_select_ = s; }
   void set_debug_switch(switch_::Switch *s) { debug_switch_ = s; }
+  void set_current_temp_sensor(sensor::Sensor *s) { current_temp_sensor_ = s; }
   void set_log_raw(bool b) { log_raw_ = b; }
   void set_restore_on_power_on(bool b) { restore_on_power_on_ = b; }
 
@@ -50,7 +52,8 @@ class RovsunA5 : public Component, public uart::UARTDevice {
 
  private:
   void process_();
-  void parse_frame_(const uint8_t *frame, size_t len);
+   void parse_frame_(const uint8_t *frame, size_t len);
+   static bool known_reg_(uint16_t reg);
   void apply_register_(uint16_t reg, uint32_t value);
   void restore_settings_();
   void send_register_(uint16_t reg, const std::vector<uint8_t> &value);
@@ -70,6 +73,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   number::Number *setpoint_number_{nullptr};
   select::Select *fan_select_{nullptr};
   switch_::Switch *debug_switch_{nullptr};
+  sensor::Sensor *current_temp_sensor_{nullptr};
 
   bool log_raw_{false};
   bool restore_on_power_on_{true};

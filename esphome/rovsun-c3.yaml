@@ -262,6 +262,16 @@ number:
     set_action:
       - lambda: 'id(rovsun).control_setpoint((x - 32.0f) * 5.0f / 9.0f);'
 
+sensor:
+  - platform: template
+    name: "Current Temperature"
+    id: current_temp_sensor
+    unit_of_measurement: "°F"
+    device_class: temperature
+    state_class: measurement
+    # Value is published by the controller from register 0x0003 (hundredths of deg C).
+
+
 rovsun_a5:
   id: rovsun
   uart_id: ac_uart
@@ -277,6 +287,7 @@ rovsun_a5:
   fan: fan_select
   mode: mode_select
   setpoint: setpoint_number
+  current_temp: current_temp_sensor
   debug: debug_switch
   log_raw: true
   restore_on_power_on: true
