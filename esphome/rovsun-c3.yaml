@@ -258,6 +258,17 @@ select:
 
 number:
   - platform: template
+    name: "Horizontal Raw Code (temporary)"
+    id: horizontal_raw_code
+    entity_category: config
+    min_value: 0
+    max_value: 255
+    step: 1
+    mode: box
+    optimistic: true
+    set_action:
+      - lambda: 'id(rovsun).control_lrdir((uint8_t)x);'
+  - platform: template
     name: "Target Temperature"
     id: setpoint_number
     min_value: 60
