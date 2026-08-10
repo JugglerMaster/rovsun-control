@@ -138,6 +138,16 @@ Every frame begins `A5 01 01/00 21 <seq> 00 00 <len> <crc16 hi> <crc16 lo>
   (`ACMCU/V9-R10FT27AC-FV001.001.030`) at cold start.
 - CRC-16/XMODEM over header (8 bytes) + body, excluding the two CRC bytes.
 
+### Cold-start sequence
+
+The repeat cold-start captures are preserved under
+[`captures/cold-startup/`](captures/cold-startup/). After power restoration,
+the observed order is an initial `A5 01 00 21 ... 11 11` query, full `0x21`
+`0C 0C` state reports beginning about 5.2 seconds later, and a 211-byte
+`A5 01 00 23` metadata frame at about 7.8 seconds. The metadata includes the
+MCU identity `ACMCU/V9-R10FT27AC-FV001.001.030`. Three repeat captures are
+retained with both directions and timestamp sidecars.
+
 ### Confirmed register map
 
 | Register | Meaning | Values |
@@ -296,6 +306,10 @@ Raw UART captures are archived under `captures/` (one file per direction, baud
 and framing in the filename). See `AGENTS.md` for capture-retention rules
 (preserve originals, redact credentials/MACs/IPs, prefer Git LFS for large
 files) and `README` history for the decode notes that produced this map.
+
+Additional paired transition captures recovered from local OpenCode history are
+under [`captures/recovered-opencode/`](captures/recovered-opencode/), with a
+manifest describing the covered airflow and control transitions.
 
 - `tools/tuya-baud-detector.py` — passive host-side baud/framing detector
   (`--protocol a5`, can save raw streams).
