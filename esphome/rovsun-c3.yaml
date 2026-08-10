@@ -219,7 +219,7 @@ select:
       - mid_wind
       - mid_high_wind
       - high_wind
-      - strong_wind
+      - turbo
     set_action:
       - lambda: |
             uint8_t v = 0;
@@ -229,7 +229,7 @@ select:
             else if (x == "mid_wind") v = 4;
             else if (x == "mid_high_wind") v = 5;
             else if (x == "high_wind") v = 6;
-            else if (x == "strong_wind") v = 7;
+            else if (x == "turbo") v = 7;
             id(rovsun).control_fan(v);
   - platform: template
     name: "Mode"

@@ -15,7 +15,7 @@ static const char *fan_str(uint8_t v) {
     case 4: return "mid_wind";
     case 5: return "mid_high_wind";
     case 6: return "high_wind";
-    case 7: return "strong_wind";
+    case 7: return "turbo";
     default: return "";
   }
 }

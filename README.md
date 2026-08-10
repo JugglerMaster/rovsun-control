@@ -176,8 +176,44 @@ Notes:
   variable-length and not register/value pairs, a naive parser desyncs after it
   (emitting spurious registers such as a bogus `0x0005 = 0`). `parse_frame_()`
   detects `0x0008` and resyncs to the next known register before continuing.
-- The 4-byte registers are `0x0002`, `0x0003`, `0x000D`, `0x0227`; every other
-  observed register is a single byte.
+ - The 4-byte registers are `0x0002`, `0x0003`, `0x000D`, `0x0227`; every other
+   observed register is a single byte.
+
+### Remote button → register cross-reference
+
+Derived from `Manuals/Mini-split-remote.md`. **Confirmed** rows are wired in the
+firmware / observed in captures; **Hypothesized** rows are inferred from the
+manual's feature descriptions and still need a button-press capture to confirm
+(see [Captures & analysis tools](#captures--analysis-tools)).
+
+| Remote button / feature | Register | Status | Notes |
+|-------------------------|----------|--------|-------|
+| Power | `0x0001` | Confirmed | `0` off, `1` on |
+| MODE (AUTO/COOL/DRY/FAN/HEAT) | `0x0012` | Confirmed | values `0`–`4` |
+| TEMP ▲ / ▼ (setpoint) | `0x0002` | Confirmed | 4-byte hundredths °C |
+| FAN (auto/mute/low/…/high/**turbo**) | `0x0005` | Confirmed | `0` auto, `1` mute, `2` low, `3` mid-low, `4` mid, `5` mid-high, `6` high, **`7` = TURBO** (firmware labels `7` "strong" — should be "turbo") |
+| SWING ▲▼ (vertical louver) | `0x0011` | Confirmed | |
+| SWING ◀▶ (horizontal louver) | `0x000E` | Confirmed | |
+| MUTE (quiet fan) | `0x0005` = `1` | Confirmed | MUTE is a fan speed, not a separate register |
+| ECO | `0x0013` | Confirmed | long-press ECO = 8 °C heating (separate function — see below) |
+| SLEEP | `0x0022` | Confirmed | `0` off, `1` standard, `2` aged, `3` child |
+| BUZZER | `0x0025` | Confirmed | firmware "Beep" |
+| DISPLAY (LED panel on/off) | `0x001E` | Hypothesized | firmware labels it "light"; likely the panel LED, not room lighting |
+| GEN / GENERATOR (long-press MUTE 3 s) | `0x002D` | Confirmed | `1` LV1, `2` LV2, `3` LV3; unit cycles OFF→L3→L2→L1 |
+| °C/°F display switch (long-press TURBO/FAN) | `0x0227` | Hypothesized | `0x0227` is a 4-byte value observed as `79` (≈ setpoint 78.8 °F); plausibly the panel's displayed °F |
+| 8 °C heating (long-press ECO) | — | Unknown | not yet seen in captures; likely a distinct register/flag |
+| I FEEL (remote temp sensing) | — | Unknown | candidate: one of `0x000C` / `0x0072`–`0x0074` / `0x0095` |
+| HEALTH (ionizer) | — | Unknown | |
+| GENTLE WIND (FAN+MUTE long-press) | — | Unknown | |
+| SELF-CLEAN (SWING combo) | — | Unknown | |
+| CHILD LOCK (MODE+TIMER) | — | Unknown | |
+| ANTI-MILDEW | — | Unknown | appears on remote LCD icon list; may be a state flag |
+| AUTO GEN / VOICE / BLUETOOTH / RESET Wi-Fi | — | Unknown | model-dependent; not yet observed |
+
+The "Unknown" rows are the best candidates for the still-unmapped registers
+(`0x000C`, `0x0015`, `0x0017`, `0x0035`, `0x0038`, `0x0055`, `0x005C`, `0x005E`,
+`0x0072`–`0x0074`, `0x0095`, `0x00C9`, `0x00DF`, `0x0148`). Capturing each
+button press individually and diffing the `0x21` frames will map them.
 
 ## ESPHome firmware
 
