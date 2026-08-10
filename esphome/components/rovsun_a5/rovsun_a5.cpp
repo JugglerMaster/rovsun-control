@@ -56,9 +56,11 @@ static const char *sleep_str(uint8_t v) {
 
 static const char *gen_str(uint8_t v) {
   switch (v) {
+    case 0: return "off";
+    case 1: return "lv1";
     case 2: return "lv2";
     case 3: return "lv3";
-    default: return "lv1";
+    default: return "";
   }
 }
 
@@ -412,12 +414,8 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       break;
     case 0x002D:
       gen_state_ = static_cast<uint8_t>(value);
-      // Value 1 is the AC's rest state, which we surface as the "off" option;
-      // don't echo it back (see setup()) so the "off" default persists.
-      if (value != 1) {
-        s = gen_str(static_cast<uint8_t>(value));
-        if (generator_select_ && s[0]) generator_select_->publish_state(s);
-      }
+      s = gen_str(static_cast<uint8_t>(value));
+      if (generator_select_ && s[0]) generator_select_->publish_state(s);
       break;
     case 0x000E:
       s = lrdir_str(static_cast<uint8_t>(value));

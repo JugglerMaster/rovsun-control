@@ -165,7 +165,7 @@ retained with both directions and timestamp sidecars.
 | `0x0022` | Sleep | `0` off, `1` standard, `2` aged, `3` child |
 | `0x0025` | Beep | `0` off, `1` on |
 | `0x0027` | Drying | `0` off, `1` on |
-| `0x002D` | Generator | `1` LV1, `2` LV2, `3` LV3 |
+| `0x002D` | Generator | `0` off/rest, `1` LV1, `2` LV2, `3` LV3 |
 | `0x0227` | Displayed °F | 4-byte big-endian (observed `79` / `74`; the value the unit shows on its panel); exposed as the `Raw 0x0227` diagnostic sensor |
 | `0x00DF` | Eco mirror | mirrors `0x0013` |
 | `0x0008` | Capability / list block | variable-length array (**not** a register/value pair); the firmware resyncs past it in the `0x21` secondary report |
@@ -178,6 +178,17 @@ with unit actions. (`0x0060` / `0x0065` were noted earlier but have **not**
 appeared in the current captures.)
 
 Notes:
+- Recovered baseline/startup reports contain `0x000E = 0x08` and
+  `0x0011 = 0x08`; these are observed rest/default values, but their UI names
+  are not yet confirmed. The controlled horizontal transitions confirm the
+  selectable values `0x02` through `0x0D` listed above.
+- A later Pro Micro/Tuya capture recorded an additional horizontal command
+  `0A 0A 00 0E 01`. This is the inferred ninth raw horizontal state; its UI
+  name is not confirmed, so it remains available through the temporary raw
+  code control rather than the named select. `0x0E` itself has not appeared.
+- Generator captures show `0x002D = 0x00` in the off/rest state and
+  `0x002D = 0x01` for LV1. The ESPHome mapping therefore treats zero as a real
+  `off` option and sends it when selected.
 - `auto` fan (`0x0005 = 0`) may carry a trailing `0x01` behavior flag in captures;
   the current firmware sends the bare code. Confirm before relying on auto.
 - Eco (`0x0013`) is exposed as an `off`/`on` select; its 79 °F target clamp is

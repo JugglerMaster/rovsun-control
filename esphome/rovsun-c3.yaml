@@ -164,8 +164,8 @@ select:
       - lv3
     set_action:
       - lambda: |
-            if (x == "off") return;  // off is a no-op; the AC's rest state
-            uint8_t v = 1;
+            uint8_t v = 0;
+            if (x == "lv1") v = 1;
             if (x == "lv2") v = 2;
             else if (x == "lv3") v = 3;
             id(rovsun).control_generator(v);
