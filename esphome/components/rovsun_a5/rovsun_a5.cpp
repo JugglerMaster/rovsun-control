@@ -105,12 +105,22 @@ void RovsunA5::setup() {
   if (debug_switch_) debug_switch_->publish_state(log_raw_);
 }
 
+static uint32_t rovsun_pref_key_(const char *s) {
+  // FNV-1a 32-bit hash of a setting name into a stable preference key. Avoids
+  // depending on hash_str (not part of this ESPHome version's preferences API).
+  uint32_t h = 2166136261u;
+  for (const char *p = s; *p; ++p) {
+    h ^= static_cast<uint32_t>(static_cast<unsigned char>(*p));
+    h *= 16777619u;
+  }
+  return h;
+}
+
 void RovsunA5::load_preferences_() {
-  using esphome::preferences::get_preference;
-  using esphome::hash_str;
   auto load_u8 = [this](const char *name, uint8_t &dst) {
-    auto v = get_preference<uint8_t>(hash_str(name));
-    if (v.has_value()) dst = v.value();
+    auto pref = global_preferences->make_preference<uint8_t>(rovsun_pref_key_(name), true);
+    uint8_t v = 0;
+    if (pref.load(&v)) dst = v;
   };
   load_u8("rovsun_a5.cmd_fan", cmd_fan_);
   load_u8("rovsun_a5.cmd_vdir", cmd_vdir_);
@@ -121,23 +131,22 @@ void RovsunA5::load_preferences_() {
   load_u8("rovsun_a5.cmd_sleep", cmd_sleep_);
   load_u8("rovsun_a5.cmd_eco", cmd_eco_);
   load_u8("rovsun_a5.cmd_lrdir", cmd_lrdir_);
-  auto sp = get_preference<uint32_t>(hash_str("rovsun_a5.cmd_setpoint"));
-  if (sp.has_value()) cmd_setpoint_ = sp.value();
+  auto sp = global_preferences->make_preference<uint32_t>(rovsun_pref_key_("rovsun_a5.cmd_setpoint"), true);
+  uint32_t v32 = 0;
+  if (sp.load(&v32)) cmd_setpoint_ = v32;
 }
 
 void RovsunA5::save_preferences_() {
-  using esphome::preferences::set_preference;
-  using esphome::hash_str;
-  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_fan"), cmd_fan_);
-  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_vdir"), cmd_vdir_);
-  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_mode"), cmd_mode_);
-  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_beep"), cmd_beep_);
-  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_light"), cmd_light_);
-  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_drying"), cmd_drying_);
-  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_sleep"), cmd_sleep_);
-  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_eco"), cmd_eco_);
-  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_lrdir"), cmd_lrdir_);
-  set_preference<uint32_t>(hash_str("rovsun_a5.cmd_setpoint"), cmd_setpoint_);
+  global_preferences->make_preference<uint8_t>(rovsun_pref_key_("rovsun_a5.cmd_fan"), true).save(&cmd_fan_);
+  global_preferences->make_preference<uint8_t>(rovsun_pref_key_("rovsun_a5.cmd_vdir"), true).save(&cmd_vdir_);
+  global_preferences->make_preference<uint8_t>(rovsun_pref_key_("rovsun_a5.cmd_mode"), true).save(&cmd_mode_);
+  global_preferences->make_preference<uint8_t>(rovsun_pref_key_("rovsun_a5.cmd_beep"), true).save(&cmd_beep_);
+  global_preferences->make_preference<uint8_t>(rovsun_pref_key_("rovsun_a5.cmd_light"), true).save(&cmd_light_);
+  global_preferences->make_preference<uint8_t>(rovsun_pref_key_("rovsun_a5.cmd_drying"), true).save(&cmd_drying_);
+  global_preferences->make_preference<uint8_t>(rovsun_pref_key_("rovsun_a5.cmd_sleep"), true).save(&cmd_sleep_);
+  global_preferences->make_preference<uint8_t>(rovsun_pref_key_("rovsun_a5.cmd_eco"), true).save(&cmd_eco_);
+  global_preferences->make_preference<uint8_t>(rovsun_pref_key_("rovsun_a5.cmd_lrdir"), true).save(&cmd_lrdir_);
+  global_preferences->make_preference<uint32_t>(rovsun_pref_key_("rovsun_a5.cmd_setpoint"), true).save(&cmd_setpoint_);
 }
 
 void RovsunA5::loop() {
