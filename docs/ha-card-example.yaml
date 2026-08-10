@@ -1,0 +1,80 @@
+# Home Assistant Lovelace card grouping the Rovsun controls exposed by
+# esphome/rovsun-c3.yaml. NOTE: the firmware no longer publishes a single
+# `climate` entity — it exposes separate `select` / `number` / `switch`
+# entities (Mode, Fan, Target Temperature, Eco, Sleep, Generator, air
+# direction, plus power/beep/light/drying). So a thermostat-style card is not
+# applicable; instead group the entities into one card.
+#
+# Entity IDs follow the friendly names in rovsun-c3.yaml (spaces -> underscores,
+# lowercased).
+
+# ---------------------------------------------------------------------------
+# Option 1 (no HACS needed): built-in "Entities" card inside a stack so all
+# controls appear as one card. Selects render as dropdowns, the number as a
+# box/slider, switches as toggles.
+# ---------------------------------------------------------------------------
+type: vertical-stack
+cards:
+  - type: entities
+    title: Rovsun Mini-Split
+    show_header_toggle: false
+    entities:
+      - entity: select.mode
+        name: Mode
+      - entity: select.fan
+        name: Fan
+      - entity: number.target_temperature
+        name: Target Temp (C)
+      - entity: select.eco
+        name: Eco
+      - entity: select.sleep_mode
+        name: Sleep Mode
+      - entity: select.generator_mode
+        name: Generator Mode
+      - entity: select.left_right_direction
+        name: Left-Right Direction
+      - entity: select.vertical_direction
+        name: Vertical Direction
+      - entity: switch.power
+        name: Power
+      - entity: switch.beep
+        name: Beep
+      - entity: switch.light
+        name: Light
+      - entity: switch.drying
+        name: Drying
+
+# ---------------------------------------------------------------------------
+# Option 2 (HACS): nicer look with stack-in-card + Mushroom cards.
+# Install: HACS -> Frontend -> add `stack-in-card` and `mushroom`.
+# ---------------------------------------------------------------------------
+# type: custom:stack-in-card
+# cards:
+#   - type: custom:mushroom-select-card
+#     entity: select.mode
+#     icon: mdi:thermostat
+#   - type: custom:mushroom-select-card
+#     entity: select.fan
+#     icon: mdi:fan
+#   - type: custom:mushroom-number-card
+#     entity: number.target_temperature
+#     name: Target Temp (C)
+#     icon: mdi:temperature-celsius
+#   - type: custom:mushroom-select-card
+#     entity: select.eco
+#   - type: custom:mushroom-select-card
+#     entity: select.sleep_mode
+#   - type: custom:mushroom-select-card
+#     entity: select.generator_mode
+#   - type: custom:mushroom-select-card
+#     entity: select.left_right_direction
+#   - type: custom:mushroom-select-card
+#     entity: select.vertical_direction
+#   - type: custom:mushroom-entity-card
+#     entity: switch.power
+#   - type: custom:mushroom-entity-card
+#     entity: switch.beep
+#   - type: custom:mushroom-entity-card
+#     entity: switch.light
+#   - type: custom:mushroom-entity-card
+#     entity: switch.drying
