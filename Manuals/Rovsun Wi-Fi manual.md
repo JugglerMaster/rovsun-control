@@ -1,6 +1,6 @@
 # ROVSUN Wi-Fi Setup Manual (OCR)
 
-> Text extracted via OCR (tesseract) from the PDF; may contain recognition errors.
+> Text extracted via OCR (tesseract) from the PDF. Single-page screenshots, so full-page OCR was used. May still contain recognition errors.
 
 [page 01]
 
@@ -1380,4 +1380,3 @@ a a
 oo
 ~
 >?
-
