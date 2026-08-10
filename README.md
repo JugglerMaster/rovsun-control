@@ -270,12 +270,15 @@ Component options (under `rovsun_a5:`):
 
 ### Potential features (not yet implemented)
 
-- **Persist desired settings to flash.** Caches are currently RAM-only, so they
-  are lost on an ESPHome restart. This means restore-on-power-on works while
-  ESPHome stays running (breaker cycle, IR power-on), but if the ESPHome device
-  also restarts during a power loss, the first-contact replay has no cached
-  values to send. Saving the caches via ESPHome's `preferences` (wear-leveled
-  flash) would make the desired state survive a full power+restart cycle.
+- **Persist desired settings to flash** — **done.** The last commanded settings
+  (fan, vdir, mode, setpoint, beep, light, drying, sleep, eco, lrdir) are saved
+  to ESPHome's wear-leveled `preferences` flash on every power **off** transition
+  and reloaded in `setup()`. This means restore-on-power-on now also survives an
+  ESPHome restart, so a breaker cycle that restarts both the unit and the
+  controller still replays HA's desired state. (Generator is intentionally
+  excluded, as before.) Note: an *abrupt* power loss with no graceful off report
+  still keeps the previous snapshot — to also cover that, persist on each
+  command instead of only on power-off.
 - **Read-only sensors** — mostly done. `0x0003` (ambient temp) drives the
   `Current Temperature` sensor, `0x000D` drives the `Power` sensor, and `0x0227`
   plus all other observed registers are available through the `raw_registers`

@@ -151,7 +151,7 @@ select:
     id: generator_select
     optimistic: true
     options:
-      - off
+      - "off"
       - lv1
       - lv2
       - lv3

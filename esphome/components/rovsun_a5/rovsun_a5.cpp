@@ -1,5 +1,6 @@
 #include "rovsun_a5.h"
 #include "esphome/core/log.h"
+#include "esphome/core/preferences.h"
 
 namespace esphome {
 namespace rovsun_a5 {
@@ -95,10 +96,48 @@ static const char *reg_str(uint16_t reg) {
 
 void RovsunA5::setup() {
   rx_.clear();
+  // Restore the last commanded settings from flash so that restore-on-power-on
+  // still works after an ESPHome restart (the RAM caches are lost on reboot).
+  load_preferences_();
   // Generator has no real "off" in the protocol; default the select to "off"
   // (the AC's rest state, register value 1) so it doesn't show a forced LV.
   if (generator_select_) generator_select_->publish_state("off");
   if (debug_switch_) debug_switch_->publish_state(log_raw_);
+}
+
+void RovsunA5::load_preferences_() {
+  using esphome::preferences::get_preference;
+  using esphome::hash_str;
+  auto load_u8 = [this](const char *name, uint8_t &dst) {
+    auto v = get_preference<uint8_t>(hash_str(name));
+    if (v.has_value()) dst = v.value();
+  };
+  load_u8("rovsun_a5.cmd_fan", cmd_fan_);
+  load_u8("rovsun_a5.cmd_vdir", cmd_vdir_);
+  load_u8("rovsun_a5.cmd_mode", cmd_mode_);
+  load_u8("rovsun_a5.cmd_beep", cmd_beep_);
+  load_u8("rovsun_a5.cmd_light", cmd_light_);
+  load_u8("rovsun_a5.cmd_drying", cmd_drying_);
+  load_u8("rovsun_a5.cmd_sleep", cmd_sleep_);
+  load_u8("rovsun_a5.cmd_eco", cmd_eco_);
+  load_u8("rovsun_a5.cmd_lrdir", cmd_lrdir_);
+  auto sp = get_preference<uint32_t>(hash_str("rovsun_a5.cmd_setpoint"));
+  if (sp.has_value()) cmd_setpoint_ = sp.value();
+}
+
+void RovsunA5::save_preferences_() {
+  using esphome::preferences::set_preference;
+  using esphome::hash_str;
+  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_fan"), cmd_fan_);
+  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_vdir"), cmd_vdir_);
+  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_mode"), cmd_mode_);
+  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_beep"), cmd_beep_);
+  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_light"), cmd_light_);
+  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_drying"), cmd_drying_);
+  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_sleep"), cmd_sleep_);
+  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_eco"), cmd_eco_);
+  set_preference<uint8_t>(hash_str("rovsun_a5.cmd_lrdir"), cmd_lrdir_);
+  set_preference<uint32_t>(hash_str("rovsun_a5.cmd_setpoint"), cmd_setpoint_);
 }
 
 void RovsunA5::loop() {
@@ -286,6 +325,11 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
         // that also restarted ESPHome) and on every genuine off->on transition
         // (power restored, or IR/HA turned the unit on).
         restore_settings_();
+      }
+      if (!power_on_ && was_on) {
+        // Unit just powered off: snapshot the last commanded settings to flash
+        // so a later ESPHome restart + AC power-on can still replay them.
+        save_preferences_();
       }
       seen_any_ = true;
       break;

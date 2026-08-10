@@ -65,8 +65,12 @@ class RovsunA5 : public Component, public uart::UARTDevice {
    static bool known_reg_(uint16_t reg);
    bool is_raw_reg_(uint16_t reg) const;
   void apply_register_(uint16_t reg, uint32_t value);
-  void restore_settings_();
-  void send_register_(uint16_t reg, const std::vector<uint8_t> &value);
+   void restore_settings_();
+   void send_register_(uint16_t reg, const std::vector<uint8_t> &value);
+   // Flash-backed persistence of the last commanded settings (see .cpp). Loaded
+   // in setup() so restore-on-power-on survives an ESPHome restart.
+   void load_preferences_();
+   void save_preferences_();
   void log_frame_(const char *dir, const uint8_t *data, size_t len);
   static uint16_t crc16_xmodem_(const uint8_t *data, size_t len);
 
