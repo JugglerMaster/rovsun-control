@@ -331,9 +331,10 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
     if (it == last_reported_.end() || it->second != value) {
       if (reg == 0x0002)
         ESP_LOGD(TAG, "AC report: %s (0x%04X) = %u (%.2f C)", reg_str(reg), reg,
-                 value, value / 100.0f);
+                 static_cast<unsigned>(value), value / 100.0f);
       else
-        ESP_LOGD(TAG, "AC report: %s (0x%04X) = %u", reg_str(reg), reg, value);
+        ESP_LOGD(TAG, "AC report: %s (0x%04X) = %u", reg_str(reg), reg,
+                 static_cast<unsigned>(value));
       last_reported_[reg] = value;
     }
   }
