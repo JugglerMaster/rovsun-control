@@ -436,8 +436,9 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       // Prefer this over the lossy 0x0002 echo (which previously used ceil() and
       // read 1 F too high, e.g. 75 F shown as 76 F). 0x0227 is also the register
       // we write to *set* the target, so it is the authoritative value.
-      if (value != 0 && setpoint_number_) {
-        setpoint_number_->publish_state(static_cast<float>(value));
+      if (value != 0) {
+        setpoint_f_ = static_cast<uint8_t>(value);
+        if (setpoint_number_) setpoint_number_->publish_state(static_cast<float>(value));
       }
       break;
     case 0x0003:
@@ -446,12 +447,6 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       // placeholder from the AC; skip it.
       if (value != 0 && current_temp_sensor_)
         current_temp_sensor_->publish_state(value / 100.0f * 9.0f / 5.0f + 32.0f);
-      break;
-    case 0x000D:
-      // Power/energy report (best-effort). Observed value 3592; this is most
-      // likely instantaneous power in watts or cumulative energy in Wh. Publish
-      // the raw value; adjust unit/scale once confirmed against a load capture.
-      if (power_sensor_) power_sensor_->publish_state(value);
       break;
     case 0x001E:
       if (light_switch_) light_switch_->publish_state(value != 0);
@@ -600,14 +595,27 @@ void RovsunA5::control_setpoint(float celsius) {
   // cmd_setpoint_ in hundredths of deg C for restore/preferences.
   uint32_t f = static_cast<uint32_t>(roundf(celsius * 9.0f / 5.0f + 32.0f));
   cmd_setpoint_ = static_cast<uint32_t>(celsius * 100.0f);
+  setpoint_f_ = static_cast<uint8_t>(f);
   if (log_raw_) ESP_LOGD(TAG, "control setpoint: %.2f C (%u F) -> reg 0x0227", celsius, f);
   send_register_(0x0227, {
                                 static_cast<uint8_t>(f >> 24),
                                 static_cast<uint8_t>(f >> 16),
                                 static_cast<uint8_t>(f >> 8),
                                 static_cast<uint8_t>(f),
-                            });
+                             });
 }
+
+void RovsunA5::nudge_setpoint(int delta_f) {
+  int new_f = static_cast<int>(setpoint_f_) + delta_f;
+  if (new_f < 60) new_f = 60;
+  if (new_f > 90) new_f = 90;
+  setpoint_f_ = static_cast<uint8_t>(new_f);
+  if (log_raw_) ESP_LOGD(TAG, "nudge setpoint: %+d F -> %u F", delta_f, new_f);
+  // Publish immediately for a responsive UI; the AC report (0x0227) will confirm.
+  if (setpoint_number_) setpoint_number_->publish_state(static_cast<float>(new_f));
+  control_setpoint((static_cast<float>(new_f) - 32.0f) * 5.0f / 9.0f);
+}
+
 void RovsunA5::control_light(bool on) {
   if (log_raw_) ESP_LOGD(TAG, "control light: %s", on ? "on" : "off");
   cmd_light_ = on ? 0x01 : 0x00;

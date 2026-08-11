@@ -34,8 +34,10 @@ See [Protocol reference](#protocol-reference) for the full confirmed register ma
 The firmware exposes the unit as separate `select` / `number` / `switch`
 entities (Mode, Fan, Target Temperature, Eco, Sleep Mode, Generator Mode, the
 two 8-position air-direction selects, plus power/beep/light/drying) rather than a
-single `climate` entity, so a thermostat-style card does not apply. To show all
-controls in one card, group those entities with a built-in `entities` card (no
+single `climate` entity, so a thermostat-style card does not apply. `Target
+Temperature` is a `number` (whole °F, 60–90) for exact entry, and the `Temp +` /
+`Temp −` buttons nudge it by ±1 °F. To show all controls in one card, group those
+entities with a built-in `entities` card (no
 HACS) or a `stack-in-card` + Mushroom layout. A ready-to-paste example of both
 is in [`docs/ha-card-example.yaml`](docs/ha-card-example.yaml).
 
@@ -156,7 +158,7 @@ retained with both directions and timestamp sidecars.
 | `0x0002` | Setpoint (target, *reported echo*) | 4-byte big-endian, hundredths of °C (e.g. `0x00000960` = 24.00 °C). Read-only from the app's perspective — writing it is a no-op. The actual setpoint *control* is `0x0227` (whole °F). |
 | `0x0003` | Current / ambient temperature | 4-byte big-endian, hundredths of °C (e.g. `0x0000092C` = 23.48 °C); used by the `Current Temperature` sensor |
 | `0x0005` | Fan | `0` auto, `1` mute, `2` low, `3` mid-low, `4` mid, `5` mid-high, `6` high, `7` strong |
-| `0x000D` | Power / energy report | 4-byte big-endian, **best-effort** (observed `3592`; likely instantaneous W or cumulative Wh — verify against a load capture); exposed as the `Power` sensor |
+| `0x000D` | Power / energy report | 4-byte big-endian, **best-effort / not surfaced** (observed `3592`; later seen as a stale garbage value `16780802` that never updates — not exposed as an entity) |
 | `0x000E` | Left-right direction | `8` fixed-mid (rest/default), `2` left flow, `3` middle flow, `4` right flow, `9` left-fix, `0x0A` a-bit-left, `0x0B` middle-fix, `0x0C` a-bit-right, `0x0D` left-right flow (**capture-confirmed**: `0x0D` observed during a bit-right→flow louver move); `right_fix` position not yet mapped |
 | `0x0011` | Vertical direction | `1` flow, `2` up, `3` down, `8` fixed-mid (observed default / app "fixed mid"), `9` up-fix, `0x0A` above-fix, `0x0B` middle-fix, `0x0C` above-down-fix, `0x0D` down-fix |
 | `0x0012` | Mode | `0` auto, `1` cool, `2` dry, `3` fan-only, `4` heat |
@@ -301,11 +303,12 @@ Component options (under `rovsun_a5:`):
   still keeps the previous snapshot — to also cover that, persist on each
   command instead of only on power-off.
 - **Read-only sensors** — mostly done. `0x0003` (ambient temp) drives the
-  `Current Temperature` sensor, `0x000D` drives the `Power` sensor, and `0x0227`
-  plus all other observed registers are available through the `raw_registers`
-  watcher below. The only remaining gap is *confirming the meaning/unit* of the
-  still-unmapped registers (esp. the `0x000D` power unit and the `0x0072`–`0x0074`
-  / `0x0227` family), which needs action-correlated captures.
+  `Current Temperature` sensor, and `0x0227` plus all other observed registers are
+  available through the `raw_registers` watcher below. The `0x000D` power/energy
+  report is **not** exposed (it never updates and has been observed as a stale
+  garbage value), so there is no `Power` sensor. The only remaining gap is
+  *confirming the meaning/unit* of the still-unmapped registers (esp. the
+  `0x0072`–`0x0074` / `0x0227` family), which needs action-correlated captures.
 - **ACK sequence verification**: match the echoed `0x23` sequence number before
   treating a command as delivered.
 - **Auto-fan flag**: confirm whether `auto` requires the trailing `0x01` flag

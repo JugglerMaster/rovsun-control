@@ -126,6 +126,16 @@ button:
     id: refresh_status_button
     on_press:
       - lambda: 'id(rovsun).request_status_();'
+  - platform: template
+    name: "Temp +"
+    id: temp_up_button
+    on_press:
+      - lambda: 'id(rovsun).nudge_setpoint(1);'
+  - platform: template
+    name: "Temp -"
+    id: temp_down_button
+    on_press:
+      - lambda: 'id(rovsun).nudge_setpoint(-1);'
 
 select:
   - platform: template
@@ -172,6 +182,7 @@ select:
   - platform: template
     name: "Left-Right Direction"
     id: lrdir_select
+    optimistic: true
     options:
       - left_right_flow
       - left_flow
@@ -293,15 +304,6 @@ sensor:
     state_class: measurement
     # Value is published by the controller from register 0x0003 (hundredths of deg C).
 
-  - platform: template
-    name: "Power"
-    id: power_sensor
-    unit_of_measurement: "W"
-    device_class: power
-    state_class: measurement
-    # Best-effort: register 0x000D (observed ~3592). Likely instantaneous watts
-    # or cumulative Wh; verify against a cooling/heating capture and adjust unit.
-
   # --- Reverse-engineering watchers ---------------------------------------
   # These route every other AC-reported register to a sensor so they can be
   # correlated with unit actions. Disabled by default to keep the dashboard
@@ -406,7 +408,6 @@ rovsun_a5:
   mode: mode_select
   setpoint: setpoint_number
   current_temp: current_temp_sensor
-  power_sensor: power_sensor
   debug: debug_switch
   log_raw: true
   restore_on_power_on: true

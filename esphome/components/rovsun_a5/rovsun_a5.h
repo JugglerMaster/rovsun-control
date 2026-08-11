@@ -35,7 +35,6 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void set_fan_select(select::Select *s) { fan_select_ = s; }
   void set_debug_switch(switch_::Switch *s) { debug_switch_ = s; }
   void set_current_temp_sensor(sensor::Sensor *s) { current_temp_sensor_ = s; }
-  void set_power_sensor(sensor::Sensor *s) { power_sensor_ = s; }
   // Reverse-engineering helper: publish any AC-reported register to a sensor.
   // Registers must come from the known set (see known_reg_); use this to watch
   // undocumented bytes and correlate their behaviour with unit actions.
@@ -52,6 +51,9 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void control_vdir(uint8_t val);
   void control_mode(uint8_t val);
   void control_setpoint(float celsius);
+  // Nudge the target temperature by `delta_f` degrees Fahrenheit (clamped to the
+  // entity's 60-90 F range). Driven by the Temp +/- buttons in YAML.
+  void nudge_setpoint(int delta_f);
   void control_light(bool on);
   void control_drying(bool on);
   void control_sleep(uint8_t val);
@@ -91,7 +93,6 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   select::Select *fan_select_{nullptr};
   switch_::Switch *debug_switch_{nullptr};
   sensor::Sensor *current_temp_sensor_{nullptr};
-  sensor::Sensor *power_sensor_{nullptr};
 
   struct RawReg {
     uint16_t reg;
@@ -107,6 +108,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   uint8_t cmd_power_{0xFF};  // last *commanded* power value (0xFF = never); guards redundant sends
   uint8_t vdir_{1};
   uint32_t setpoint_{0};  // last target setpoint reported by the AC (0x0002), in hundredths of deg C
+  uint8_t setpoint_f_{72};  // last target setpoint in whole deg F (mirrors 0x0227); basis for nudges
 
   // Last values commanded through ESPHome, replayed on power-on so the unit
   // matches HA's desired state after a power loss or IR-originated power-on.
