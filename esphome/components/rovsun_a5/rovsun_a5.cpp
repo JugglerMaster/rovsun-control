@@ -588,14 +588,16 @@ void RovsunA5::control_mode(uint8_t val) {
   send_register_(0x0012, {val});
 }
 void RovsunA5::control_setpoint(float celsius) {
-  // The AC accepts the setpoint as a 2-byte value (hundredths of deg C). A
-  // 4-byte command is misread as 0 C and the unit rejects it as an invalid
-  // value, so only the low 2 bytes are sent.
-  uint16_t v = static_cast<uint16_t>(celsius * 100.0f);
+  // Setpoint commands use the same 4-byte big-endian field as state reports.
+  uint32_t v = static_cast<uint32_t>(celsius * 100.0f);
   if (log_raw_) ESP_LOGD(TAG, "control setpoint: %.2f C", celsius);
   cmd_setpoint_ = v;
-  send_register_(0x0002, {static_cast<uint8_t>(v >> 8),
-                          static_cast<uint8_t>(v)});
+  send_register_(0x0002, {
+                               static_cast<uint8_t>(v >> 24),
+                               static_cast<uint8_t>(v >> 16),
+                               static_cast<uint8_t>(v >> 8),
+                               static_cast<uint8_t>(v),
+                           });
 }
 void RovsunA5::control_light(bool on) {
   if (log_raw_) ESP_LOGD(TAG, "control light: %s", on ? "on" : "off");

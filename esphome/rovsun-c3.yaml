@@ -90,7 +90,6 @@ switch:
   - platform: template
     name: "Light"
     id: light_switch
-    optimistic: true
     on_turn_on:
       - lambda: 'id(rovsun).control_light(true);'
     on_turn_off:
@@ -277,9 +276,8 @@ number:
     id: setpoint_number
     min_value: 60
     max_value: 90
-    step: 0.5
+    step: 1
     mode: box
-    optimistic: true
     unit_of_measurement: "F"
     # Input is degrees Fahrenheit; convert to Celsius for the AC protocol.
     set_action:
