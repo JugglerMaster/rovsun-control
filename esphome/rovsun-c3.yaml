@@ -177,6 +177,7 @@ select:
       - left_flow
       - middle_flow
       - right_flow
+      - fixed_mid
       - left_fix
       - a_bit_left_fix
       - middle_fix
@@ -187,6 +188,7 @@ select:
             if (x == "left_flow") v = 2;
             else if (x == "middle_flow") v = 3;
             else if (x == "right_flow") v = 4;
+            else if (x == "fixed_mid") v = 8;
             else if (x == "left_fix") v = 9;
             else if (x == "a_bit_left_fix") v = 0x0A;
             else if (x == "middle_fix") v = 0x0B;
@@ -199,6 +201,7 @@ select:
       - flow
       - up
       - down
+      - fixed_mid
       - up_fix
       - above_fix
       - middle_fix
@@ -209,6 +212,7 @@ select:
             uint8_t v = 1;
             if (x == "up") v = 2;
             else if (x == "down") v = 3;
+            else if (x == "fixed_mid") v = 8;
             else if (x == "up_fix") v = 9;
             else if (x == "above_fix") v = 0x0A;
             else if (x == "middle_fix") v = 0x0B;

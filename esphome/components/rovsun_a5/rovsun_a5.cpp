@@ -36,7 +36,7 @@ static const char *vdir_str(uint8_t v) {
     case 1: return "flow";
     case 2: return "up";
     case 3: return "down";
-    case 8: return "middle_fix";  // default fixed-mid position (app "fixed mid")
+    case 8: return "fixed_mid";  // observed default / app "fixed mid"
     case 9: return "up_fix";
     case 0x0A: return "above_fix";
     case 0x0B: return "middle_fix";
@@ -70,6 +70,7 @@ static const char *lrdir_str(uint8_t v) {
     case 2: return "left_flow";
     case 3: return "middle_flow";
     case 4: return "right_flow";
+    case 8: return "fixed_mid";  // observed rest/default
     case 9: return "left_fix";
     case 0x0A: return "a_bit_left_fix";
     case 0x0B: return "middle_fix";
@@ -83,6 +84,7 @@ static const char *reg_str(uint16_t reg) {
   switch (reg) {
     case 0x0001: return "power";
     case 0x0002: return "setpoint";
+    case 0x0003: return "current_temp";
     case 0x0005: return "fan";
     case 0x000E: return "left_right_dir";
     case 0x0011: return "vertical_dir";
@@ -175,13 +177,55 @@ void RovsunA5::loop() {
 
 void RovsunA5::log_frame_(const char *dir, const uint8_t *data, size_t len) {
   if (!log_raw_) return;
-  std::string s;
-  char buf[4];
-  for (size_t i = 0; i < len; i++) {
-    snprintf(buf, sizeof(buf), "%02X ", data[i]);
-    s += buf;
+  if (len < 10) return;
+
+  char hdr[40];
+  snprintf(hdr, sizeof(hdr), "%s frame cmd=0x%02X seq=%u:", dir, data[3],
+           static_cast<unsigned>(data[4] ? data[4] : data[5]));
+  std::string out = hdr;
+
+  const uint8_t *body = data + 10;
+  size_t blen = len - 10;
+  size_t i = 0;
+  // Skip the frame body prefix (0C 0C report or 0A 0A command).
+  if (blen >= 2 &&
+      ((body[0] == 0x0C && body[1] == 0x0C) ||
+       (body[0] == 0x0A && body[1] == 0x0A)))
+    i = 2;
+
+  while (i + 2 <= blen) {
+    uint16_t reg = (static_cast<uint16_t>(body[i]) << 8) | body[i + 1];
+    // Capability blob: a variable-length array, not register/value pairs. Skip
+    // to the next known register so we don't log its bytes as registers.
+    if (reg == 0x0008) {
+      size_t j = i + 3;
+      for (; j + 2 <= blen; j++) {
+        uint16_t r = (static_cast<uint16_t>(body[j]) << 8) | body[j + 1];
+        if (known_reg_(r) || is_raw_reg_(r)) { i = j; break; }
+      }
+      if (j + 2 > blen) break;
+      continue;
+    }
+    bool known = known_reg_(reg);
+    bool raw = is_raw_reg_(reg);
+    if (!known && !raw) break;
+    bool wide = (reg == 0x0002 || reg == 0x0003 || reg == 0x000D || reg == 0x0227);
+    size_t w = wide ? 4 : 1;
+    if (i + 2 + w > blen) break;
+    uint32_t val = 0;
+    for (size_t k = 0; k < w; k++) val = (val << 8) | body[i + 2 + k];
+    char buf[56];
+    if (reg == 0x0002 || reg == 0x0003) {
+      snprintf(buf, sizeof(buf), " %s=%u(%.2fC)", known ? reg_str(reg) : "?",
+               static_cast<unsigned>(val), val / 100.0f);
+    } else {
+      snprintf(buf, sizeof(buf), " %s=%u", known ? reg_str(reg) : "?",
+               static_cast<unsigned>(val));
+    }
+    out += buf;
+    i += 2 + w;
   }
-  ESP_LOGD(TAG, "%s: %s", dir, s.c_str());
+  ESP_LOGD(TAG, "%s", out.c_str());
 }
 
 void RovsunA5::process_() {
@@ -380,10 +424,17 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       // the Fahrenheit range of the `setpoint_number` entity. The AC sends 0 as
       // a null/placeholder (it never targets 0 C); ignore it so we don't publish
       // 32 F, which Home Assistant would clamp to the entity's min_value (60).
+      // The AC stores the setpoint in centi-degrees C, so the converted value
+      // (e.g. 26.00 C = 78.8 F) rarely lands on the entity's 0.5 F `step`.
+      // Round to the nearest 0.5 F so Home Assistant does not reject the state
+      // as an "invalid value". (Keep this in sync with the YAML `step`.)
       if (value != 0) {
         setpoint_ = value;
-        if (setpoint_number_)
-          setpoint_number_->publish_state(setpoint_ / 100.0f * 9.0f / 5.0f + 32.0f);
+        if (setpoint_number_) {
+          float f = setpoint_ / 100.0f * 9.0f / 5.0f + 32.0f;
+          f = roundf(f * 2.0f) / 2.0f;
+          setpoint_number_->publish_state(f);
+        }
       }
       break;
     case 0x0003:
@@ -538,15 +589,14 @@ void RovsunA5::control_mode(uint8_t val) {
   send_register_(0x0012, {val});
 }
 void RovsunA5::control_setpoint(float celsius) {
-  uint32_t v = static_cast<uint32_t>(celsius * 100.0f);
+  // The AC accepts the setpoint as a 2-byte value (hundredths of deg C). A
+  // 4-byte command is misread as 0 C and the unit rejects it as an invalid
+  // value, so only the low 2 bytes are sent.
+  uint16_t v = static_cast<uint16_t>(celsius * 100.0f);
   if (log_raw_) ESP_LOGD(TAG, "control setpoint: %.2f C", celsius);
   cmd_setpoint_ = v;
-  send_register_(0x0002, {
-                               static_cast<uint8_t>(v >> 24),
-                               static_cast<uint8_t>(v >> 16),
-                               static_cast<uint8_t>(v >> 8),
-                               static_cast<uint8_t>(v),
-                           });
+  send_register_(0x0002, {static_cast<uint8_t>(v >> 8),
+                          static_cast<uint8_t>(v)});
 }
 void RovsunA5::control_light(bool on) {
   if (log_raw_) ESP_LOGD(TAG, "control light: %s", on ? "on" : "off");
