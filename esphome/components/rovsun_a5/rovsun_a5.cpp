@@ -424,15 +424,14 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       // the Fahrenheit range of the `setpoint_number` entity. The AC sends 0 as
       // a null/placeholder (it never targets 0 C); ignore it so we don't publish
       // 32 F, which Home Assistant would clamp to the entity's min_value (60).
-      // The AC stores the setpoint in centi-degrees C, so the converted value
-      // (e.g. 26.00 C = 78.8 F) rarely lands on the entity's 0.5 F `step`.
-      // Round to the nearest 0.5 F so Home Assistant does not reject the state
-      // as an "invalid value". (Keep this in sync with the YAML `step`.)
+      // The unit's front-panel readout shows whole degrees F and rounds UP
+      // (e.g. 23.00 C = 73.4 F is displayed as 74 F). Round up to the nearest
+      // whole F so the ESPHome number matches what the AC panel shows.
       if (value != 0) {
         setpoint_ = value;
         if (setpoint_number_) {
           float f = setpoint_ / 100.0f * 9.0f / 5.0f + 32.0f;
-          f = roundf(f * 2.0f) / 2.0f;
+          f = ceilf(f);
           setpoint_number_->publish_state(f);
         }
       }
