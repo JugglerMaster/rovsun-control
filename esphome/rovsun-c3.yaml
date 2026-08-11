@@ -2,37 +2,31 @@
 #
 # Replaces the stock Tuya Wi-Fi module. The mini-split speaks a CUSTOM `A5`
 # UART protocol (NOT Tuya 55 AA), implemented by the local `rovsun_a5`
-# external component. The XIAO is 3.3 V logic, so it connects to the mini-split
-# through the 3.3 V/5 V level shifter:
+# external component. The XIAO uses 3.3 V logic and connects to the mini-split
+# through a 3.3 V/5 V level shifter:
 #
 #   XIAO (3.3 V)  <->  Level shifter (LV)  |  Level shifter (HV)  <->  Mini-split (5 V)
-#   D6  GPIO16 (TX) -> LV-TX in            |  HV-TX out          -> main-board RX (idle pin)
-#   D7  GPIO17 (RX) <- LV-RX out           |  HV-RX in           <- main-board TX (streaming pin)
+#   GPIO16 (TX)   -> LV-TX in             |  HV-TX out          -> main-board RX (idle pin)
+#   GPIO17 (RX)   <- LV-RX out            |  HV-RX in           <- main-board TX (streaming pin)
 #   GND            <-> LV-GND              |  HV-GND             <-> board GND
 #   3V3            -> LV rail              |  HV rail            -> board 5V (NOT XIAO 5V/VCC)
 #
 # Do NOT connect XIAO 5V/VCC to the shifter HV rail; power the HV side from the
-# mini-split's own 5 V rail. Confirmed working commands (Pro Micro bench test):
+# mini-split's own 5 V rail. Confirmed command registers include:
 #   power  0x0001, beep 0x0025, fan 0x0005, vertical 0x0011, mode 0x0012,
 #   setpoint 0x0002 (hundredths of deg C).
 #
-# FINDING THE UART INTERFACE: the "UART interface" for this device is the mini-split
-# main board's 5 V TTL serial on the 4-pin JST (main-board TX continuously streams
-# `A5` frames; its RX is idle until a command is sent). Those 5 V lines must be
-# level-shifted down to the XIAO's 3.3 V before connecting. The exact XIAO GPIOs
-# you wire to depend on which physical pads you soldered AND your board's
-# D-pad->GPIO mapping:
-#   - Seeed XIAO ESP32-C3: D6=GPIO21, D7=GPIO20
-#   - Seeed XIAO ESP32-C6: D6=GPIO16, D7=GPIO17   <-- this config (per espressif XIAO C6 variant)
-# Set `tx_pin`/`rx_pin` (under `uart:` below) to match the pads you actually used.
-# If the board won't talk to the AC, re-check the mapping against your board's
-# pinout and the `uart:` section -- a wrong GPIO is the usual cause.
+# The mini-split's 4-pin JST carries 5 V TTL UART: the main-board TX line
+# continuously streams `A5` frames, while its RX line is idle until a command
+# is sent. Level-shift both signal lines before connecting them to the XIAO.
 #
-# Flash: `esphome run rovsun-c3.yaml` (USB-C). Secrets live in esphome/secrets.yaml.
+# Flash with `esphome run rovsun-c3.yaml` (USB-C or OTA). Secrets live in the
+# ESPHome secrets file.
+# BUILDTEST-123
 
 esphome:
-  name: rovsun-c3
-  friendly_name: Rovsun Mini-Split
+  name: rovsun-downstairs
+  friendly_name: Rovsun Mini-Split Downstairs
 
 esp32:
   board: seeed_xiao_esp32c6
@@ -49,11 +43,11 @@ external_components:
       url: https://github.com/JugglerMaster/rovsun-control
       ref: main
       path: esphome/components
-    refresh: 0s
+    refresh: 0s # refresh on each configuration run
 
 api:
   encryption:
-    key: !secret api_key
+    key: !secret rovsun_c3__api_key
 
 ota:
   - platform: esphome
@@ -62,8 +56,8 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   ap:
-    ssid: "rovsun-c3-fallback"
-    password: !secret ap_password
+    ssid: rovsun-c3-fallback
+    password: !secret rovsun_downstairs__ap_key
 
 captive_portal:
 
