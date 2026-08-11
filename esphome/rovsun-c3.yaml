@@ -37,13 +37,19 @@ esp32:
 logger:
   baud_rate: 0
 
+# Load the custom A5 component from the local checkout (deployed into
+# /config/components by tools/deploy-esphome.sh). Comment this out and switch
+# to the upstream git source below to track the published component instead.
 external_components:
   - source:
-      type: git
-      url: https://github.com/JugglerMaster/rovsun-control
-      ref: main
-      path: esphome/components
-    refresh: 0s # refresh on each configuration run
+      type: local
+      path: components
+#  - source:
+#      type: git
+#      url: https://github.com/JugglerMaster/rovsun-control
+#      ref: main
+#      path: esphome/components
+#    refresh: 0s # refresh on each configuration run
 
 api:
   encryption:
@@ -84,6 +90,7 @@ switch:
   - platform: template
     name: "Light"
     id: light_switch
+    optimistic: true
     on_turn_on:
       - lambda: 'id(rovsun).control_light(true);'
     on_turn_off:
