@@ -53,10 +53,8 @@ ssh "$NASOMV_HOST" "docker cp ${STAGE_REMOTE}/components/rovsun_a5 ${ESPHOME_CON
 echo ">> Compiling + OTA flashing via container ..."
 # --device OTA resolves the address via mDNS/DNS/MQTT and avoids the
 # interactive prompt. Pass an explicit IP/name as $1 to override.
-# Run detached *inside* the container (esphome writes its own log file) so it
-# survives the SSH session. --no-logs makes it exit after the OTA upload
-# instead of attaching to live device logs (which would hang forever).
+# --no-logs makes esphome exit after the OTA upload instead of attaching to
+# live device logs (which would hang forever). This step takes a few minutes
+# (longer on a first/clean build), so call this script with a generous timeout.
 DEVICE_ARG="${DEVICE:-OTA}"
-ssh "$NASOMV_HOST" "docker exec $ESPHOME_CONTAINER sh -c 'esphome run /config/${YAML_NAME} --device ${DEVICE_ARG} --no-logs > /tmp/esphome-deploy.log 2>&1' &"
-echo ">> Started (detached). Poll progress with:"
-echo "   ssh $NASOMV_HOST 'docker exec $ESPHOME_CONTAINER tail -n 40 /tmp/esphome-deploy.log'"
+ssh "$NASOMV_HOST" "docker exec $ESPHOME_CONTAINER esphome run /config/${YAML_NAME} --device ${DEVICE_ARG} --no-logs"

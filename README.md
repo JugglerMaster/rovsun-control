@@ -153,7 +153,7 @@ retained with both directions and timestamp sidecars.
 | Register | Meaning | Values |
 |----------|---------|--------|
 | `0x0001` | Power | `0` off, `1` on |
-| `0x0002` | Setpoint (target) | 4-byte big-endian, hundredths of °C (e.g. `0x00000960` = 24.00 °C) |
+| `0x0002` | Setpoint (target, *reported echo*) | 4-byte big-endian, hundredths of °C (e.g. `0x00000960` = 24.00 °C). Read-only from the app's perspective — writing it is a no-op. The actual setpoint *control* is `0x0227` (whole °F). |
 | `0x0003` | Current / ambient temperature | 4-byte big-endian, hundredths of °C (e.g. `0x0000092C` = 23.48 °C); used by the `Current Temperature` sensor |
 | `0x0005` | Fan | `0` auto, `1` mute, `2` low, `3` mid-low, `4` mid, `5` mid-high, `6` high, `7` strong |
 | `0x000D` | Power / energy report | 4-byte big-endian, **best-effort** (observed `3592`; likely instantaneous W or cumulative Wh — verify against a load capture); exposed as the `Power` sensor |
@@ -211,7 +211,7 @@ manual's feature descriptions and still need a button-press capture to confirm
 |-------------------------|----------|--------|-------|
 | Power | `0x0001` | Confirmed | `0` off, `1` on |
 | MODE (AUTO/COOL/DRY/FAN/HEAT) | `0x0012` | Confirmed | values `0`–`4` |
-| TEMP ▲ / ▼ (setpoint) | `0x0002` | Confirmed | 4-byte hundredths °C |
+| TEMP ▲ / ▼ (setpoint) | `0x0227` | Confirmed | Whole degrees **°F** (e.g. `75` = 75 °F). The OEM app writes only `0x0227` to change the target; `0x0002` is the resulting °C echo. |
 | FAN (auto/mute/low/…/high/**turbo**) | `0x0005` | Confirmed | `0` auto, `1` mute, `2` low, `3` mid-low, `4` mid, `5` mid-high, `6` high, **`7` = TURBO** (firmware labels `7` "strong" — should be "turbo") |
 | SWING ▲▼ (vertical louver) | `0x0011` | Confirmed | |
 | SWING ◀▶ (horizontal louver) | `0x000E` | Confirmed | |
@@ -221,7 +221,7 @@ manual's feature descriptions and still need a button-press capture to confirm
 | BUZZER | `0x0025` | Confirmed | firmware "Beep" |
 | DISPLAY (LED panel on/off) | `0x001E` | Hypothesized | firmware labels it "light"; likely the panel LED, not room lighting |
 | GEN / GENERATOR (long-press MUTE 3 s) | `0x002D` | Confirmed | `0` off, `1` LV1, `2` LV2, `3` LV3; default is off |
-| °C/°F display switch (long-press TURBO/FAN) | `0x0227` | Hypothesized | `0x0227` is a 4-byte value observed as `79` (≈ setpoint 78.8 °F); plausibly the panel's displayed °F |
+| °C/°F display switch (long-press TURBO/FAN) | `0x0227` | Confirmed (reuse) | `0x0227` is the target-temperature register; the OEM app writes it as whole °F to set the setpoint (observed `74`/`75` for a 74→75 °F change). The AC also reports it back alongside the `0x0002` °C echo. |
 | 8 °C heating (long-press ECO) | — | Unknown | not yet seen in captures; likely a distinct register/flag |
 | I FEEL (remote temp sensing) | — | Unknown | candidate: one of `0x000C` / `0x0072`–`0x0074` / `0x0095` |
 | HEALTH (ionizer) | — | Unknown | |

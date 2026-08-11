@@ -420,20 +420,24 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       if (mode_select_ && s[0]) mode_select_->publish_state(s);
       break;
     case 0x0002:
-      // Reported setpoint is in hundredths of deg C; publish as deg F to match
-      // the Fahrenheit range of the `setpoint_number` entity. The AC sends 0 as
-      // a null/placeholder (it never targets 0 C); ignore it so we don't publish
-      // 32 F, which Home Assistant would clamp to the entity's min_value (60).
-      // The unit's front-panel readout shows whole degrees F and rounds UP
-      // (e.g. 23.00 C = 73.4 F is displayed as 74 F). Round up to the nearest
-      // whole F so the ESPHome number matches what the AC panel shows.
+      // Reported setpoint echo, hundredths of deg C. The AC rounds the target to
+      // whole degrees C here, so converting back to F is approximate (off by up
+      // to 1 F). Used only as a fallback; the exact target is reported in 0x0227.
       if (value != 0) {
         setpoint_ = value;
         if (setpoint_number_) {
           float f = setpoint_ / 100.0f * 9.0f / 5.0f + 32.0f;
-          f = ceilf(f);
-          setpoint_number_->publish_state(f);
+          setpoint_number_->publish_state(roundf(f));
         }
+      }
+      break;
+    case 0x0227:
+      // Target temperature exactly as the panel displays it: whole degrees F.
+      // Prefer this over the lossy 0x0002 echo (which previously used ceil() and
+      // read 1 F too high, e.g. 75 F shown as 76 F). 0x0227 is also the register
+      // we write to *set* the target, so it is the authoritative value.
+      if (value != 0 && setpoint_number_) {
+        setpoint_number_->publish_state(static_cast<float>(value));
       }
       break;
     case 0x0003:
@@ -588,16 +592,21 @@ void RovsunA5::control_mode(uint8_t val) {
   send_register_(0x0012, {val});
 }
 void RovsunA5::control_setpoint(float celsius) {
-  // Setpoint commands use the same 4-byte big-endian field as state reports.
-  uint32_t v = static_cast<uint32_t>(celsius * 100.0f);
-  if (log_raw_) ESP_LOGD(TAG, "control setpoint: %.2f C", celsius);
-  cmd_setpoint_ = v;
-  send_register_(0x0002, {
-                               static_cast<uint8_t>(v >> 24),
-                               static_cast<uint8_t>(v >> 16),
-                               static_cast<uint8_t>(v >> 8),
-                               static_cast<uint8_t>(v),
-                           });
+  // The AC accepts a target-temperature change via register 0x0227, whose value
+  // is the target in whole degrees Fahrenheit. Confirmed from OEM-app captures:
+  // changing 74->75 F writes 0x0227 = 75 (and nothing else). Register 0x0002 is
+  // only a reported echo (hundredths of deg C) and is ignored when written, so
+  // writing it (as the old code did) makes the command a no-op. Keep
+  // cmd_setpoint_ in hundredths of deg C for restore/preferences.
+  uint32_t f = static_cast<uint32_t>(roundf(celsius * 9.0f / 5.0f + 32.0f));
+  cmd_setpoint_ = static_cast<uint32_t>(celsius * 100.0f);
+  if (log_raw_) ESP_LOGD(TAG, "control setpoint: %.2f C (%u F) -> reg 0x0227", celsius, f);
+  send_register_(0x0227, {
+                                static_cast<uint8_t>(f >> 24),
+                                static_cast<uint8_t>(f >> 16),
+                                static_cast<uint8_t>(f >> 8),
+                                static_cast<uint8_t>(f),
+                            });
 }
 void RovsunA5::control_light(bool on) {
   if (log_raw_) ESP_LOGD(TAG, "control light: %s", on ? "on" : "off");
