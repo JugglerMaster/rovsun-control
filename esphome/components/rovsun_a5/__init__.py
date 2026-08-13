@@ -86,7 +86,7 @@ async def to_code(config):
         cg.add(var.set_sleep_select(p))
     if CONF_ECO in config:
         p = await cg.get_variable(config[CONF_ECO])
-        cg.add(var.set_eco_select(p))
+        cg.add(var.set_eco_switch(p))
     if CONF_GENERATOR in config:
         p = await cg.get_variable(config[CONF_GENERATOR])
         cg.add(var.set_generator_select(p))

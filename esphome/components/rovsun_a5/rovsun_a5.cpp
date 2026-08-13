@@ -445,8 +445,16 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       // Current/measured room temperature, hundredths of deg C. Publish in deg F
       // to match the user's Fahrenheit preference. As with 0x0002, 0 is a null
       // placeholder from the AC; skip it.
-      if (value != 0 && current_temp_sensor_)
+      // Do not let a malformed frame or parser desynchronization turn into a
+      // believable Home Assistant state update. The unit's ambient sensor is
+      // expected to be below 60 C; invalid values are ignored, preserving the
+      // last good reading.
+      if (value != 0 && value <= 6000 && current_temp_sensor_) {
         current_temp_sensor_->publish_state(value / 100.0f * 9.0f / 5.0f + 32.0f);
+      } else if (value > 6000) {
+        ESP_LOGW(TAG, "Ignoring implausible current temperature register: %u (%.2f C)",
+                 static_cast<unsigned>(value), value / 100.0f);
+      }
       break;
     case 0x001E:
       if (light_switch_) light_switch_->publish_state(value != 0);
@@ -459,7 +467,7 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       if (sleep_select_ && s[0]) sleep_select_->publish_state(s);
       break;
     case 0x0013:
-      if (eco_select_) eco_select_->publish_state(value ? "on" : "off");
+      if (eco_switch_) eco_switch_->publish_state(value != 0);
       break;
     case 0x002D:
       gen_state_ = static_cast<uint8_t>(value);

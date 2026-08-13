@@ -26,7 +26,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   void set_light_switch(switch_::Switch *s) { light_switch_ = s; }
   void set_drying_switch(switch_::Switch *s) { drying_switch_ = s; }
   void set_sleep_select(select::Select *s) { sleep_select_ = s; }
-  void set_eco_select(select::Select *s) { eco_select_ = s; }
+  void set_eco_switch(switch_::Switch *s) { eco_switch_ = s; }
   void set_generator_select(select::Select *s) { generator_select_ = s; }
   void set_lrdir_select(select::Select *s) { lrdir_select_ = s; }
   void set_vdir_select(select::Select *s) { vdir_select_ = s; }
@@ -84,7 +84,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   switch_::Switch *light_switch_{nullptr};
   switch_::Switch *drying_switch_{nullptr};
   select::Select *sleep_select_{nullptr};
-  select::Select *eco_select_{nullptr};
+  switch_::Switch *eco_switch_{nullptr};
   select::Select *generator_select_{nullptr};
   select::Select *lrdir_select_{nullptr};
   select::Select *vdir_select_{nullptr};

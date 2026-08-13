@@ -20,13 +20,13 @@
 # continuously streams `A5` frames, while its RX line is idle until a command
 # is sent. Level-shift both signal lines before connecting them to the XIAO.
 #
-# Flash with `esphome run rovsun-c3.yaml` (USB-C or OTA). Secrets live in the
-# ESPHome secrets file.
-# BUILDTEST-123
+# Flash with `esphome run rovsun-upstairs.yaml` (USB-C or OTA). Secrets live in
+# the ESPHome secrets file. This is the upstairs unit; see rovsun-c3.yaml for
+# the downstairs twin.
 
 esphome:
-  name: rovsun-downstairs
-  friendly_name: Rovsun Mini-Split Downstairs
+  name: rovsun-upstairs
+  friendly_name: Rovsun Mini-Split Upstairs
 
 esp32:
   board: seeed_xiao_esp32c6
@@ -53,7 +53,7 @@ external_components:
 
 api:
   encryption:
-    key: !secret rovsun_c3__api_key
+    key: !secret rovsun_upstairs__api_key
 
 ota:
   - platform: esphome
@@ -62,8 +62,8 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   ap:
-    ssid: rovsun-c3-fallback
-    password: !secret rovsun_downstairs__ap_key
+    ssid: rovsun-upstairs-fallback
+    password: !secret rovsun_upstairs__ap_key
 
 captive_portal:
 
