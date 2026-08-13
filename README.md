@@ -252,7 +252,35 @@ Exposed entities:
   (`0x002D`), Left-Right Direction (`0x000E`), Vertical Direction (`0x0011`).
   These two direction selects expose the full louver list for each axis —
   every fixed position **plus** the "flow" (swing) value — so you get a long
-  option list per direction instead of a simplified swing control.
+   option list per direction instead of a simplified swing control.
+
+### Deployment
+
+The firmware is deployed to the units with **ESPHome** — there is no separate
+build step or flash tool; the `esphome` CLI compiles and uploads the config
+directly to each device over USB/serial. This repo's `esphome/` configs are
+the source of truth; running the ESPHome script against a config *is* the
+deploy.
+
+Prerequisites:
+- `esphome/secrets.yaml` must exist (WiFi `ssid`/`password`, per-unit
+  `api_key`/`ap_key` — see [Secrets](#secrets-esphomesecretsyaml)).
+- The target board is `seeed_xiao_esp32c6`; connect it over USB.
+
+On the Windows host (per `AGENTS.md`, using the bundled Python):
+
+```powershell
+& "C:\Users\chris\AppData\Local\Python\pythoncore-3.14-64\python.exe" -m esphome run esphome\rovsun-upstairs.yaml
+& "C:\Users\chris\AppData\Local\Python\pythoncore-3.14-64\python.exe" -m esphome run esphome\rovsun-c3.yaml
+```
+
+`run` compiles and uploads in one step. Use `compile` first if you only want
+to validate the YAML before flashing. After a successful deploy, the device
+rejoins WiFi and the entities appear (or update) in Home Assistant.
+
+> **Note:** `Left-Right Direction` → `left_right_flow` currently sends a
+> placeholder value (`0x01`) until its real register code is captured; all
+> other direction options already send their confirmed codes.
 
 Component options (under `rovsun_a5:`):
 - `restore_on_power_on` (default `true`): replay cached settings on power-on.
