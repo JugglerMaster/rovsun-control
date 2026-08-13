@@ -33,6 +33,9 @@ static const char *mode_str(uint8_t v) {
 
 static const char *vdir_str(uint8_t v) {
   switch (v) {
+    case 1: return "flow";
+    case 2: return "up";
+    case 3: return "down";
     case 9: return "up_fix";
     case 0x0A: return "above_fix";
     case 0x0B: return "middle_fix";
@@ -63,7 +66,6 @@ static const char *gen_str(uint8_t v) {
 
 static const char *lrdir_str(uint8_t v) {
   switch (v) {
-    case 1: return "left_right_flow";
     case 2: return "left_flow";
     case 3: return "middle_flow";
     case 4: return "right_flow";

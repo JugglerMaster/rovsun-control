@@ -9,6 +9,9 @@ directly, removing the cloud/app dependency.
 
 ## Status
 
+- **Actively in use and main-feature complete.** This is running in production on
+  a real unit. No extra features are planned, but the core controls exposed are
+  enough for Home Assistant to fully automate the mini-split.
 - **Protocol decoded and confirmed** (2026-08-07): bidirectional `A5 01 01 21`
   command frames and `0x21` state reports, CRC-16/XMODEM over the header + body
   (CRC bytes excluded). Setting commands use an `0A 0A` body prefix; the board
@@ -21,11 +24,21 @@ directly, removing the cloud/app dependency.
   State is published from the board's `0x21` reports, so IR-remote changes are
   observed and reconciled.
 - **Restore-on-power-on**: the controller caches every value commanded through
-  ESPHome and replays them when it detects a power **off→on** transition (power
-  restored, or the IR remote turning the unit on). This re-asserts HA's desired
-  fan / swing / beep / light / drying / eco / sleep / generator / left-right /
-  mode / setpoint, which the unit otherwise loses (it returns to factory defaults
-  on power loss, and IR power-on applies the remote's stored config).
+  ESPHome and replays them only when it detects a power **off→on** transition
+  (power restored, or the IR remote turning the unit on). This re-asserts HA's
+  desired fan / swing / beep / light / drying / eco / sleep / generator /
+  left-right / mode / setpoint, which the unit otherwise loses (it returns to
+  factory defaults on power loss, and IR power-on applies the remote's stored
+  config).
+
+> **Safety — the controller does NOT continuously override the IR remote.**
+> Restore-on-power-on is intentionally limited to a power **off→on** edge. The
+> firmware *can* intercept and override IR-remote traffic (the capability exists
+> but is **not enabled by default**), because silently fighting the physical
+> remote during normal operation would be confusing and unsafe — it could mask a
+> user's intent, e.g. someone pressing OFF on the remote. IR commands are
+> therefore only observed and reconciled; the unit is re-asserted only after a
+> power cycle. Enable IR overriding only with that tradeoff understood.
 
 See [Protocol reference](#protocol-reference) for the full confirmed register map.
 
