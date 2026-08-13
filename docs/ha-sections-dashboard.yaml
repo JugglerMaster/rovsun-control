@@ -1,142 +1,20 @@
 # Home Assistant "sections" view dashboard for the Rovsun mini-splits.
-# Two cards: one for the downstairs unit(s), one for the upstairs unit.
+# Two cards: one for the upstairs unit, one for the downstairs unit.
 # Each card mirrors the original layout: a "Controls" sub-group plus a
 # "Temp Change" sub-group (temp buttons + target temp + mode + current-temp
 # graph, which spans the full 2-column width).
 #
 # Entity IDs follow the regenerated names:
-#   downstairs -> basement_rec_/office_..._downstairs_*
 #   upstairs   -> kitchen_..._upstairs_*
-# (adjust the temp buttons if the regenerated IDs differ)
+#   downstairs -> basement_rec_/office_..._downstairs_*
 
 view_type: sections
 sections:
-  # ===================== DOWNSTAIRS CARD =====================
-  - type: grid
-    cards:
-      - type: heading
-        heading_style: title
-        heading: Mini-Split Downstairs
-
-      - type: heading
-        heading_style: subtitle
-        heading: Controls
-      - type: grid
-        square: false
-        columns: 2
-        cards:
-          - type: tile
-            entity: switch.basement_rec_rovsun_mini_split_downstairs_power
-            name: { type: entity }
-            vertical: false
-            features_position: bottom
-          - type: tile
-            entity: switch.office_rovsun_mini_split_downstairs_beep
-            name: { type: entity }
-            vertical: false
-            features_position: bottom
-          - type: tile
-            entity: select.basement_rec_rovsun_mini_split_downstairs_fan
-            name: { type: entity }
-            vertical: false
-            features_position: inline
-            features:
-              - type: select-options
-          - type: tile
-            entity: select.office_rovsun_mini_split_downstairs_left_right_direction
-            name: { type: entity }
-            vertical: false
-            features_position: inline
-            features:
-              - type: select-options
-          - type: tile
-            entity: switch.office_rovsun_mini_split_downstairs_eco
-            name: { type: entity }
-            vertical: false
-          - type: tile
-            entity: select.office_rovsun_mini_split_downstairs_vertical_direction
-            name: { type: entity }
-            vertical: false
-            features_position: inline
-            features:
-              - type: select-options
-          - type: tile
-            entity: select.office_rovsun_mini_split_downstairs_generator_mode
-            name: { type: entity }
-            vertical: false
-            features_position: inline
-            features:
-              - type: select-options
-          - type: tile
-            entity: switch.office_rovsun_mini_split_downstairs_light
-            name: { type: entity }
-            vertical: false
-            features_position: bottom
-          - type: tile
-            entity: switch.office_rovsun_mini_split_downstairs_drying
-            name: { type: entity }
-            vertical: false
-            features_position: bottom
-          - type: tile
-            entity: select.office_rovsun_mini_split_downstairs_sleep_mode
-            name: { type: entity }
-            vertical: false
-            features_position: inline
-            features:
-              - type: select-options
-
-      - type: heading
-        heading_style: subtitle
-        heading: Temp Change
-      - type: vertical-stack
-        cards:
-          - type: grid
-            square: false
-            columns: 2
-            cards:
-              - type: tile
-                entity: button.basement_rec_rovsun_mini_split_downstairs_temp_2
-                name: Temp Decrease -
-                icon: mdi:thermometer-minus
-                vertical: false
-                features_position: bottom
-              - type: tile
-                entity: button.basement_rec_rovsun_mini_split_downstairs_temp
-                name: Temp Increase +
-                icon: mdi:thermometer-plus
-                vertical: false
-                features_position: bottom
-              - type: tile
-                entity: number.basement_rec_rovsun_mini_split_downstairs_target_temperature
-                name: { type: entity }
-                vertical: false
-                features_position: bottom
-              - type: tile
-                entity: select.basement_rec_rovsun_mini_split_downstairs_mode
-                name: { type: entity }
-                vertical: false
-                features_position: inline
-                features:
-                  - type: select-options
-          - type: statistics-graph
-            entities:
-              - sensor.basement_rec_rovsun_mini_split_downstairs_current_temperature
-            title: Current Temp
-            days_to_show: 1
-            period: 5minute
-            chart_type: line-stack
-            stat_types: [min]
-            hide_legend: true
-            min_y_axis: 60
-            max_y_axis: 120
-
-  # ===================== UPSTAIRS CARD =====================
   - type: grid
     cards:
       - type: heading
         heading_style: title
         heading: Mini-Split Upstairs
-
       - type: heading
         heading_style: subtitle
         heading: Controls
@@ -146,64 +24,73 @@ sections:
         cards:
           - type: tile
             entity: switch.kitchen_rovsun_mini_split_upstairs_power
-            name: { type: entity }
+            name:
+              type: entity
             vertical: false
             features_position: bottom
           - type: tile
             entity: switch.kitchen_rovsun_mini_split_upstairs_beep
-            name: { type: entity }
+            name:
+              type: entity
             vertical: false
             features_position: bottom
           - type: tile
             entity: switch.kitchen_rovsun_mini_split_upstairs_light
-            name: { type: entity }
-            vertical: false
-            features_position: bottom
-          - type: tile
-            entity: switch.kitchen_rovsun_mini_split_upstairs_drying
-            name: { type: entity }
+            name:
+              type: entity
             vertical: false
             features_position: bottom
           - type: tile
             entity: select.kitchen_rovsun_mini_split_upstairs_fan
-            name: { type: entity }
-            vertical: false
-            features_position: inline
-            features:
-              - type: select-options
-          - type: tile
-            entity: switch.kitchen_rovsun_mini_split_upstairs_eco
-            name: { type: entity }
-            vertical: false
-          - type: tile
-            entity: select.kitchen_rovsun_mini_split_upstairs_sleep_mode
-            name: { type: entity }
-            vertical: false
-            features_position: inline
-            features:
-              - type: select-options
-          - type: tile
-            entity: select.kitchen_rovsun_mini_split_upstairs_generator_mode
-            name: { type: entity }
+            name:
+              type: entity
             vertical: false
             features_position: inline
             features:
               - type: select-options
           - type: tile
             entity: select.kitchen_rovsun_mini_split_upstairs_left_right_direction
-            name: { type: entity }
+            name:
+              type: entity
             vertical: false
             features_position: inline
             features:
               - type: select-options
           - type: tile
             entity: select.kitchen_rovsun_mini_split_upstairs_vertical_direction
-            name: { type: entity }
+            name:
+              type: entity
             vertical: false
             features_position: inline
             features:
               - type: select-options
-
+          - type: tile
+            entity: switch.kitchen_rovsun_mini_split_upstairs_eco
+            name:
+              type: entity
+            vertical: false
+          - type: tile
+            entity: select.kitchen_rovsun_mini_split_upstairs_generator_mode
+            name:
+              type: entity
+            vertical: false
+            features_position: inline
+            features:
+              - type: select-options
+          - type: tile
+            entity: switch.kitchen_rovsun_mini_split_upstairs_drying
+            name:
+              type: entity
+            vertical: false
+            features_position: bottom
+          - type: tile
+            entity: select.kitchen_rovsun_mini_split_upstairs_sleep_mode
+            name:
+              type: entity
+            vertical: false
+            features_position: inline
+            features:
+              - type: select-options
       - type: heading
         heading_style: subtitle
         heading: Temp Change
@@ -227,12 +114,14 @@ sections:
                 features_position: bottom
               - type: tile
                 entity: number.kitchen_rovsun_mini_split_upstairs_target_temperature
-                name: { type: entity }
+                name:
+                  type: entity
                 vertical: false
                 features_position: bottom
               - type: tile
                 entity: select.kitchen_rovsun_mini_split_upstairs_mode
-                name: { type: entity }
+                name:
+                  type: entity
                 vertical: false
                 features_position: inline
                 features:
@@ -244,7 +133,138 @@ sections:
             days_to_show: 1
             period: 5minute
             chart_type: line-stack
-            stat_types: [min]
+            stat_types:
+              - min
+            hide_legend: true
+            min_y_axis: 60
+            max_y_axis: 120
+  - type: grid
+    cards:
+      - type: heading
+        heading_style: title
+        heading: Mini-Split Downstairs
+      - type: heading
+        heading_style: subtitle
+        heading: Controls
+      - type: grid
+        square: false
+        columns: 2
+        cards:
+          - type: tile
+            entity: switch.basement_rec_rovsun_mini_split_downstairs_power
+            name:
+              type: entity
+            vertical: false
+            features_position: bottom
+          - type: tile
+            entity: switch.office_rovsun_mini_split_downstairs_beep
+            name:
+              type: entity
+            vertical: false
+            features_position: bottom
+          - type: tile
+            entity: switch.office_rovsun_mini_split_downstairs_light
+            name:
+              type: entity
+            vertical: false
+            features_position: bottom
+          - type: tile
+            entity: select.basement_rec_rovsun_mini_split_downstairs_fan
+            name:
+              type: entity
+            vertical: false
+            features_position: inline
+            features:
+              - type: select-options
+          - type: tile
+            entity: select.office_rovsun_mini_split_downstairs_left_right_direction
+            name:
+              type: entity
+            vertical: false
+            features_position: inline
+            features:
+              - type: select-options
+          - type: tile
+            entity: select.office_rovsun_mini_split_downstairs_vertical_direction
+            name:
+              type: entity
+            vertical: false
+            features_position: inline
+            features:
+              - type: select-options
+          - type: tile
+            entity: switch.office_rovsun_mini_split_downstairs_eco
+            name:
+              type: entity
+            vertical: false
+          - type: tile
+            entity: select.office_rovsun_mini_split_downstairs_generator_mode
+            name:
+              type: entity
+            vertical: false
+            features_position: inline
+            features:
+              - type: select-options
+          - type: tile
+            entity: switch.office_rovsun_mini_split_downstairs_drying
+            name:
+              type: entity
+            vertical: false
+            features_position: bottom
+          - type: tile
+            entity: select.office_rovsun_mini_split_downstairs_sleep_mode
+            name:
+              type: entity
+            vertical: false
+            features_position: inline
+            features:
+              - type: select-options
+      - type: heading
+        heading_style: subtitle
+        heading: Temp Change
+      - type: vertical-stack
+        cards:
+          - type: grid
+            square: false
+            columns: 2
+            cards:
+              - type: tile
+                entity: button.basement_rec_rovsun_mini_split_downstairs_temp_2
+                name: Temp Decrease -
+                icon: mdi:thermometer-minus
+                vertical: false
+                features_position: bottom
+              - type: tile
+                entity: button.basement_rec_rovsun_mini_split_downstairs_temp
+                name: Temp Increase +
+                icon: mdi:thermometer-plus
+                vertical: false
+                features_position: bottom
+              - type: tile
+                entity: >-
+                  number.basement_rec_rovsun_mini_split_downstairs_target_temperature
+                name:
+                  type: entity
+                vertical: false
+                features_position: bottom
+              - type: tile
+                entity: select.basement_rec_rovsun_mini_split_downstairs_mode
+                name:
+                  type: entity
+                vertical: false
+                features_position: inline
+                features:
+                  - type: select-options
+          - type: statistics-graph
+            entities:
+              - >-
+                sensor.basement_rec_rovsun_mini_split_downstairs_current_temperature
+            title: Current Temp
+            days_to_show: 1
+            period: 5minute
+            chart_type: line-stack
+            stat_types:
+              - min
             hide_legend: true
             min_y_axis: 60
             max_y_axis: 120
@@ -253,3 +273,4 @@ header:
     type: markdown
     content: change mini split configurations
     text_only: true
+cards: []

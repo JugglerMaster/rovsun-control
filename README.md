@@ -159,7 +159,7 @@ retained with both directions and timestamp sidecars.
 | `0x0003` | Current / ambient temperature | 4-byte big-endian, hundredths of °C (e.g. `0x0000092C` = 23.48 °C); used by the `Current Temperature` sensor |
 | `0x0005` | Fan | `0` auto, `1` mute, `2` low, `3` mid-low, `4` mid, `5` mid-high, `6` high, `7` strong |
 | `0x000D` | Power / energy report | 4-byte big-endian, **best-effort / not surfaced** (observed `3592`; later seen as a stale garbage value `16780802` that never updates — not exposed as an entity) |
-| `0x000E` | Left-right direction | `8` fixed-mid (rest/default), `2` left flow, `3` middle flow, `4` right flow, `9` left-fix, `0x0A` a-bit-left, `0x0B` middle-fix, `0x0C` a-bit-right, `0x0D` left-right flow (**capture-confirmed**: `0x0D` observed during a bit-right→flow louver move); `right_fix` position not yet mapped |
+| `0x000E` | Left-right direction | `2` left flow, `3` middle flow, `4` right flow, `9` left-fix, `0x0A` a-bit-left, `0x0B` middle-fix, `0x0C` a-bit-right, `0x0D` **right-fix** (**capture-confirmed**: `0x0D` observed during a bit-right→flow louver move in `captures-air-lr-bitright-to-flow`); `8` is the rest/default position (not an app-exposed state); `left_right_flow` (full auto swing) is observed in the app but its register value is **not yet captured** — sent as placeholder `1` pending a confirming capture |
 | `0x0011` | Vertical direction | `1` flow, `2` up, `3` down, `8` fixed-mid (observed default / app "fixed mid"), `9` up-fix, `0x0A` above-fix, `0x0B` middle-fix, `0x0C` above-down-fix, `0x0D` down-fix |
 | `0x0012` | Mode | `0` auto, `1` cool, `2` dry, `3` fan-only, `4` heat |
 | `0x0013` | Eco | `0` off, `1` on (forces target to 79 °F floor) |

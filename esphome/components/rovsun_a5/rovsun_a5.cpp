@@ -36,7 +36,6 @@ static const char *vdir_str(uint8_t v) {
     case 1: return "flow";
     case 2: return "up";
     case 3: return "down";
-    case 8: return "fixed_mid";  // observed default / app "fixed mid"
     case 9: return "up_fix";
     case 0x0A: return "above_fix";
     case 0x0B: return "middle_fix";
@@ -70,12 +69,11 @@ static const char *lrdir_str(uint8_t v) {
     case 2: return "left_flow";
     case 3: return "middle_flow";
     case 4: return "right_flow";
-    case 8: return "fixed_mid";  // observed rest/default
     case 9: return "left_fix";
     case 0x0A: return "a_bit_left_fix";
     case 0x0B: return "middle_fix";
     case 0x0C: return "a_bit_right_fix";
-    case 0x0D: return "left_right_flow";
+    case 0x0D: return "right_fix";
     default: return "";
   }
 }
