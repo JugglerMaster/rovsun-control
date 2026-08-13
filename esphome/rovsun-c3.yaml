@@ -194,7 +194,7 @@ select:
     set_action:
       - lambda: |
             uint8_t v = 0x0D;
-            if (x == "left_right_flow") v = 1;  // confirmed via capture
+            if (x == "left_right_flow") v = 1;  // confirmed: 0x01 = left-right auto swing
             else if (x == "left_flow") v = 2;
             else if (x == "middle_flow") v = 3;
             else if (x == "right_flow") v = 4;
@@ -208,6 +208,9 @@ select:
     name: "Vertical Direction"
     id: vdir_select
     options:
+      - flow
+      - up
+      - down
       - up_fix
       - above_fix
       - middle_fix
@@ -215,8 +218,10 @@ select:
       - down_fix
     set_action:
       - lambda: |
-            uint8_t v = 0x0B;  // default middle_fix
-            if (x == "up_fix") v = 9;
+            uint8_t v = 1;
+            if (x == "up") v = 2;
+            else if (x == "down") v = 3;
+            else if (x == "up_fix") v = 9;
             else if (x == "above_fix") v = 0x0A;
             else if (x == "middle_fix") v = 0x0B;
             else if (x == "above_down_fix") v = 0x0C;
