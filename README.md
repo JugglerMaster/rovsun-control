@@ -1,6 +1,6 @@
 # Rovsun Wireless Controller Replacement
 
-Local control of a Rovsun mini-split that ships with a Realtek **RTL8720CF**
+Local control of a **Rovsun 20k BTU dual-zone mini-split AC** that ships with a Realtek **RTL8720CF**
 Wi-Fi module. The module talks to the main control board over a **custom `A5`
 UART protocol** (not the Tuya `55 AA` MCU protocol), running at **115200 8N1**.
 The stock module can be replaced by a Seeed XIAO ESP32-C6 running an ESPHome
