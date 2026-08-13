@@ -160,7 +160,7 @@ retained with both directions and timestamp sidecars.
 | `0x0005` | Fan | `0` auto, `1` mute, `2` low, `3` mid-low, `4` mid, `5` mid-high, `6` high, `7` strong |
 | `0x000D` | Power / energy report | 4-byte big-endian, **best-effort / not surfaced** (observed `3592`; later seen as a stale garbage value `16780802` that never updates — not exposed as an entity) |
 | `0x000E` | Left-right direction | `1` left-right flow (auto swing, **confirmed working**), `2` left flow, `3` middle flow, `4` right flow, `9` left-fix, `0x0A` a-bit-left, `0x0B` middle-fix, `0x0C` a-bit-right, `0x0D` **right-fix** (**capture-confirmed**: `0x0D` observed during a bit-right→flow louver move in `captures-air-lr-bitright-to-flow`); `8` is the rest/default position (not an app-exposed state) |
-| `0x0011` | Vertical direction | `1` flow (auto swing), `2` up, `3` down, `9` up-fix, `0x0A` above-fix, `0x0B` middle-fix, `0x0C` above-down-fix, `0x0D` down-fix; `8` is the rest/default position (not an app-exposed state) |
+| `0x0011` | Vertical direction | `1` Up-Down Flow (auto swing), `2` Up Flow, `3` Down Flow, `9` up-fix, `0x0A` above-fix, `0x0B` middle-fix, `0x0C` above-down-fix, `0x0D` down-fix; `8` is the rest/default position (not an app-exposed state) |
 | `0x0012` | Mode | `0` auto, `1` cool, `2` dry, `3` fan-only, `4` heat |
 | `0x0013` | Eco | `0` off, `1` on (forces target to 79 °F floor) |
 | `0x001E` | Light | `0` off, `1` on |
