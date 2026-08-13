@@ -7,6 +7,16 @@ The stock module can be replaced by a Seeed XIAO ESP32-C6 running an ESPHome
 external component (`esphome/components/rovsun_a5`) that speaks this protocol
 directly, removing the cloud/app dependency.
 
+## Safety
+
+- The mini-split contains mains voltage. Wire only to verified low-voltage points,
+  with power disconnected while wiring.
+- Do not inject serial commands while the stock module is connected (two TX
+  sources cause bus contention).
+- Confirm signal voltage before connecting any 3.3 V input.
+- RTL8720CF is not an ESP32; the replacement strategy is to remove the module and
+  speak to the main MCU UART.
+
 ## Status
 
 - **Actively in use and main-feature complete.** This is running in production on
@@ -32,13 +42,14 @@ directly, removing the cloud/app dependency.
   config).
 
 > **Safety — the controller does NOT continuously override the IR remote.**
-> Restore-on-power-on is intentionally limited to a power **off→on** edge. The
-> firmware *can* intercept and override IR-remote traffic (the capability exists
-> but is **not enabled by default**), because silently fighting the physical
-> remote during normal operation would be confusing and unsafe — it could mask a
-> user's intent, e.g. someone pressing OFF on the remote. IR commands are
-> therefore only observed and reconciled; the unit is re-asserted only after a
-> power cycle. Enable IR overriding only with that tradeoff understood.
+> Restore-on-power-on is intentionally limited to a power **off→on** edge. Active
+> IR-remote overriding is a *planned* capability that is **not yet tested or
+> confirmed working** — parts may exist in the firmware, but should not be relied
+> on. Silently fighting the physical remote during normal operation would be
+> confusing and unsafe (it could mask a user's intent, e.g. someone pressing OFF
+> on the remote), so for now IR commands are only observed and reconciled and the
+> unit is re-asserted only after a power cycle. Treat any IR-override behavior as
+> experimental until verified.
 
 See [Protocol reference](#protocol-reference) for the full confirmed register map.
 
@@ -379,13 +390,3 @@ manifest describing the covered airflow and control transitions.
   still transmit for bench tests. To watch the live ESP32, tap its **D7 (GPIO17,
   TX)** into the Pro Micro **RX1/D0** with common GND and leave the Pro Micro TX
   disconnected (two TX sources on the bus cause contention).
-
-## Safety
-
-- The mini-split contains mains voltage. Wire only to verified low-voltage points,
-  with power disconnected while wiring.
-- Do not inject serial commands while the stock module is connected (two TX
-  sources cause bus contention).
-- Confirm signal voltage before connecting any 3.3 V input.
-- RTL8720CF is not an ESP32; the replacement strategy is to remove the module and
-  speak to the main MCU UART.
