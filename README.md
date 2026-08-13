@@ -1,4 +1,4 @@
-# rovsun-control
+# Rovsun Wireless Controller Replacement
 
 Local control of a Rovsun mini-split that ships with a Realtek **RTL8720CF**
 Wi-Fi module. The module talks to the main control board over a **custom `A5`
