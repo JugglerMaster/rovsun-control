@@ -80,6 +80,10 @@ is in [`docs/ha-card-example.yaml`](docs/ha-card-example.yaml).
   - GND common; power the replacement from the board's own 5 V rail, **never**
     connect the board 5 V to a 3.3 V device rail.
 - Use a 3.3 V/5 V level shifter between the XIAO and the 5 V signals.
+- The original stock controller must be physically removed: **cut the UART
+  connection between the mini-split and the old controller**, then **solder the
+  wires directly to the ESP32** (XIAO) so it talks to the main-board MCU in place
+  of the stock module.
 
 > **ESPHome version:** built and verified against **ESPHome 2026.7.4**. The
 > `climate` platform uses the current enum + custom-fan-mode API, so a container
