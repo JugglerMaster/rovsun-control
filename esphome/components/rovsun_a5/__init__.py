@@ -38,7 +38,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_LIGHT): cv.use_id(switch.Switch),
         cv.Optional(CONF_DRYING): cv.use_id(switch.Switch),
         cv.Optional(CONF_SLEEP): cv.use_id(select.Select),
-        cv.Optional(CONF_ECO): cv.use_id(select.Select),
+        cv.Optional(CONF_ECO): cv.use_id(switch.Switch),
         cv.Optional(CONF_GENERATOR): cv.use_id(select.Select),
         cv.Optional(CONF_LRDIR): cv.use_id(select.Select),
         cv.Optional(CONF_VDIR): cv.use_id(select.Select),
