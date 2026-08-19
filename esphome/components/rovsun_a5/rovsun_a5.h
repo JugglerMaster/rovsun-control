@@ -129,6 +129,7 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   std::vector<uint8_t> rx_;
   uint8_t seq_ = 0x70;
   std::map<uint16_t, uint32_t> last_reported_{};  // last value per register, for change-based debug logging
+  uint32_t last_cmd_ms_{0};  // millis() of last TX; apply_register_ skips reports within 1 s of this
 };
 
 }  // namespace rovsun_a5

@@ -368,6 +368,12 @@ void RovsunA5::restore_settings_() {
 }
 
 void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
+  // After sending a command, the AC's immediate status echo often contains
+  // stale values (e.g. the old setpoint or fan speed). Skip reports that
+  // arrive within the cooldown window so HA doesn't briefly show the wrong
+  // state before the real update arrives.
+  if (last_cmd_ms_ != 0 && millis() - last_cmd_ms_ < 1000) return;
+
   const char *s;
   // Debug echo: log each register only when its value actually changes (the
   // AC streams the full state repeatedly, so logging every frame would flood).
@@ -524,6 +530,7 @@ void RovsunA5::send_register_(uint16_t reg, const std::vector<uint8_t> &value) {
   this->log_frame_("TX", frame.data(), frame.size());
   for (size_t i = 0; i < frame.size(); i++) this->write(frame[i]);
   this->flush();
+  last_cmd_ms_ = millis();
 }
 
 void RovsunA5::request_status_() {
