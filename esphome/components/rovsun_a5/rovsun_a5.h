@@ -4,10 +4,8 @@
 #include <string>
 #include <map>
 #include <set>
-#include <deque>
 #include <utility>
 #include "esphome/core/component.h"
-#include "esphome/core/hal.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/switch/switch.h"
 #include "esphome/components/select/select.h"
@@ -45,7 +43,6 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   }
   void set_log_raw(bool b) { log_raw_ = b; }
   void set_restore_on_power_on(bool b) { restore_on_power_on_ = b; }
-  void set_command_delay_ms(uint32_t ms) { command_delay_ms_ = ms; }
 
   // Called from YAML lambdas when the user changes an entity.
   void control_power(bool on);
@@ -132,15 +129,6 @@ class RovsunA5 : public Component, public uart::UARTDevice {
   std::vector<uint8_t> rx_;
   uint8_t seq_ = 0x70;
   std::map<uint16_t, uint32_t> last_reported_{};  // last value per register, for change-based debug logging
-
-  // Command queue: back-to-back register writes are queued and sent one at a
-  // time so the AC's UART has time to process each command.
-  struct QueuedCmd {
-    std::vector<uint8_t> frame;
-  };
-  std::deque<QueuedCmd> cmd_queue_{};
-  uint32_t command_delay_ms_{500};
-  uint32_t last_cmd_ms_{0};
 };
 
 }  // namespace rovsun_a5

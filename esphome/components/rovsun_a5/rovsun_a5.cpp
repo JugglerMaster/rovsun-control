@@ -166,21 +166,6 @@ void RovsunA5::save_preferences_() {
 }
 
 void RovsunA5::loop() {
-  // Drain the command queue: send one frame at a time, spaced by the
-  // inter-command delay so the AC's UART has time to process each command.
-  while (!cmd_queue_.empty()) {
-    uint32_t now = millis();
-    if (now - last_cmd_ms_ >= command_delay_ms_) {
-      auto &cmd = cmd_queue_.front();
-      for (size_t i = 0; i < cmd.frame.size(); i++) this->write(cmd.frame[i]);
-      this->flush();
-      cmd_queue_.pop_front();
-      last_cmd_ms_ = now;
-    } else {
-      break;
-    }
-  }
-
   while (this->available()) {
     int c = this->read();
     if (c < 0) break;
@@ -535,9 +520,8 @@ void RovsunA5::send_register_(uint16_t reg, const std::vector<uint8_t> &value) {
   frame[9] = static_cast<uint8_t>(crc & 0xFF);
 
   this->log_frame_("TX", frame.data(), frame.size());
-  // Enqueue the frame; loop() will send it when the inter-command delay
-  // has elapsed, preventing the AC from dropping rapid-fire commands.
-  cmd_queue_.push_back({std::move(frame)});
+  for (size_t i = 0; i < frame.size(); i++) this->write(frame[i]);
+  this->flush();
 }
 
 void RovsunA5::request_status_() {
@@ -587,9 +571,11 @@ void RovsunA5::control_power(bool on) {
   send_register_(0x0001, {v});
 }
 void RovsunA5::control_beep(bool on) {
+  uint8_t v = on ? 0x01 : 0x00;
+  if (v == cmd_beep_) return;
   if (log_raw_) ESP_LOGD(TAG, "control beep: %s", on ? "on" : "off");
-  cmd_beep_ = on ? 0x01 : 0x00;
-  send_register_(0x0025, {static_cast<uint8_t>(cmd_beep_)});
+  cmd_beep_ = v;
+  send_register_(0x0025, {v});
 }
 void RovsunA5::control_fan(uint8_t val) {
   const char *fs = fan_str(val);
