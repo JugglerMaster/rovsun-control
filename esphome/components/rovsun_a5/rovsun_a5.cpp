@@ -409,9 +409,7 @@ void RovsunA5::apply_register_(uint16_t reg, uint32_t value) {
       break;
     }
     case 0x0025:
-      // Beep register is momentary (AC sets it to 1 briefly then resets to 0).
-      // Do NOT publish state to the switch — HA would echo it back, creating
-      // an infinite feedback loop. The beep switch is command-only.
+      if (beep_switch_) beep_switch_->publish_state(value != 0);
       break;
     case 0x0005:
       s = fan_str(static_cast<uint8_t>(value));
