@@ -166,6 +166,21 @@ void RovsunA5::save_preferences_() {
 }
 
 void RovsunA5::loop() {
+  // Drain the command queue: send one frame at a time, spaced by the
+  // inter-command delay so the AC's UART has time to process each command.
+  while (!cmd_queue_.empty()) {
+    uint32_t now = millis();
+    if (now - last_cmd_ms_ >= command_delay_ms_) {
+      auto &cmd = cmd_queue_.front();
+      for (size_t i = 0; i < cmd.frame.size(); i++) this->write(cmd.frame[i]);
+      this->flush();
+      cmd_queue_.pop_front();
+      last_cmd_ms_ = now;
+    } else {
+      break;
+    }
+  }
+
   while (this->available()) {
     int c = this->read();
     if (c < 0) break;
@@ -520,8 +535,9 @@ void RovsunA5::send_register_(uint16_t reg, const std::vector<uint8_t> &value) {
   frame[9] = static_cast<uint8_t>(crc & 0xFF);
 
   this->log_frame_("TX", frame.data(), frame.size());
-  for (size_t i = 0; i < frame.size(); i++) this->write(frame[i]);
-  this->flush();
+  // Enqueue the frame; loop() will send it when the inter-command delay
+  // has elapsed, preventing the AC from dropping rapid-fire commands.
+  cmd_queue_.push_back({std::move(frame)});
 }
 
 void RovsunA5::request_status_() {

@@ -23,6 +23,7 @@ CONF_CURRENT_TEMP = "current_temp"
 CONF_DEBUG = "debug"
 CONF_LOG_RAW = "log_raw"
 CONF_RESTORE = "restore_on_power_on"
+CONF_COMMAND_DELAY = "command_delay_ms"
 CONF_RAW_REGISTERS = "raw_registers"
 CONF_REGISTER = "register"
 
@@ -49,6 +50,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_DEBUG): cv.use_id(switch.Switch),
         cv.Optional(CONF_LOG_RAW, default=False): cv.boolean,
         cv.Optional(CONF_RESTORE, default=True): cv.boolean,
+        cv.Optional(CONF_COMMAND_DELAY, default=500): cv.positive_int,
         # Reverse-engineering watcher: watch any AC-reported register and route
         # it to a sensor. Registers must be from the device's known set.
         cv.Optional(CONF_RAW_REGISTERS): cv.ensure_list(
@@ -69,6 +71,7 @@ async def to_code(config):
     await uart.register_uart_device(var, config)
     cg.add(var.set_log_raw(config[CONF_LOG_RAW]))
     cg.add(var.set_restore_on_power_on(config[CONF_RESTORE]))
+    cg.add(var.set_command_delay_ms(config[CONF_COMMAND_DELAY]))
     if CONF_BEEP in config:
         p = await cg.get_variable(config[CONF_BEEP])
         cg.add(var.set_beep_switch(p))

@@ -1,0 +1,28 @@
+alias: Before Lunch
+description: ""
+triggers:
+  - trigger: time
+    at: "11:50:00"
+    weekday:
+      - sun
+      - mon
+      - tue
+      - wed
+      - thu
+      - sat
+      - fri
+conditions: []
+actions:
+  - action: select.select_option
+    metadata: {}
+    target:
+      entity_id: select.kitchen_rovsun_mini_split_upstairs_vertical_direction
+    data:
+      option: up_fix
+  - action: select.select_option
+    metadata: {}
+    target:
+      entity_id: select.kitchen_rovsun_mini_split_upstairs_fan
+    data:
+      option: auto
+mode: single
